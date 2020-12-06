@@ -21,14 +21,14 @@
 #include "types.h"
 
 enum {
-    EVAL_CACHE_KEY_SIZE = 16,
-    EVAL_CACHE_MASK     = 0xFFFF,
+    EVAL_CACHE_KEY_SIZE = 20,
+    EVAL_CACHE_MASK     = 0xFFFFF,
     EVAL_CACHE_SIZE     = 1 << EVAL_CACHE_KEY_SIZE,
 };
 
 enum {
-    PK_CACHE_KEY_SIZE   = 16,
-    PK_CACHE_MASK       = 0xFFFF,
+    PK_CACHE_KEY_SIZE   = 20,
+    PK_CACHE_MASK       = 0xFFFFF,
     PK_CACHE_SIZE       = 1 << PK_CACHE_KEY_SIZE,
 };
 

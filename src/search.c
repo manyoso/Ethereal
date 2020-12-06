@@ -196,7 +196,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     unsigned tbresult;
     int hist = 0, cmhist = 0, fmhist = 0;
     int quietsSeen = 0, quietsPlayed = 0, capturesPlayed = 0, played = 0;
-    int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
+    int ttHit, ttValue = 0, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
     int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
@@ -249,7 +249,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     }
 
     // Step 4. Probe the Transposition Table, adjust the value, and consider cutoffs
-    if ((ttHit = getTTEntry(board->hash, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
+    if ((ttHit = getTTEntry(board->hash, &ttMove, &ttValue, &ttDepth, &ttBound))) {
 
         ttValue = valueFromTT(ttValue, thread->height); // Adjust any MATE scores
 
@@ -288,7 +288,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             || (ttBound == BOUND_LOWER && value >= beta)
             || (ttBound == BOUND_UPPER && value <= alpha)) {
 
-            storeTTEntry(board->hash, NONE_MOVE, valueToTT(value, thread->height), VALUE_NONE, depth, ttBound);
+            storeTTEntry(board->hash, NONE_MOVE, valueToTT(value, thread->height), depth, ttBound);
             return value;
         }
     }
@@ -300,7 +300,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
     // Save a history of the static evaluations
     eval = thread->evalStack[thread->height]
-         = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
+         = evaluateBoard(thread, board);
 
     // Futility Pruning Margin
     futilityMargin = FutilityMargin * depth;
@@ -591,7 +591,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     if (!RootNode || !thread->multiPV) {
         ttBound = best >= beta    ? BOUND_LOWER
                 : best > oldAlpha ? BOUND_EXACT : BOUND_UPPER;
-        storeTTEntry(board->hash, bestMove, valueToTT(best, thread->height), eval, depth, ttBound);
+        storeTTEntry(board->hash, bestMove, valueToTT(best, thread->height), depth, ttBound);
     }
 
     return best;
@@ -602,7 +602,7 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
     Board *const board = &thread->board;
 
     int eval, value, best;
-    int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
+    int ttHit, ttValue = 0, ttDepth = 0, ttBound = 0;
     uint16_t move, ttMove = NONE_MOVE;
     MovePicker movePicker;
     PVariation lpv;
@@ -632,7 +632,7 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
         return evaluateBoard(thread, board);
 
     // Step 4. Probe the Transposition Table, adjust the value, and consider cutoffs
-    if ((ttHit = getTTEntry(board->hash, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
+    if ((ttHit = getTTEntry(board->hash, &ttMove, &ttValue, &ttDepth, &ttBound))) {
 
         ttValue = valueFromTT(ttValue, thread->height); // Adjust any MATE scores
 
@@ -645,7 +645,7 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
 
     // Save a history of the static evaluations
     eval = thread->evalStack[thread->height]
-         = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
+         = evaluateBoard(thread, board);
 
     // Step 5. Eval Pruning. If a static evaluation of the board will
     // exceed beta, then we can stop the search here. Also, if the static

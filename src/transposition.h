@@ -32,19 +32,18 @@ enum {
 enum {
     TT_MASK_BOUND = 0x03,
     TT_MASK_AGE   = 0xFC,
-    TT_BUCKET_NB  = 3,
+    TT_BUCKET_NB  = 4,
 };
 
 struct TTEntry {
     int8_t depth;
     uint8_t generation;
-    int16_t eval, value;
+    int16_t value;
     uint16_t move, hash16;
 };
 
 struct TTBucket {
     TTEntry slots[TT_BUCKET_NB];
-    uint16_t padding;
 };
 
 struct TTable {
@@ -61,5 +60,5 @@ int hashfullTT();
 int valueFromTT(int value, int height);
 int valueToTT(int value, int height);
 void prefetchTTEntry(uint64_t hash);
-int getTTEntry(uint64_t hash, uint16_t *move, int *value, int *eval, int *depth, int *bound);
-void storeTTEntry(uint64_t hash, uint16_t move, int value, int eval, int depth, int bound);
+int getTTEntry(uint64_t hash, uint16_t *move, int *value, int *depth, int *bound);
+void storeTTEntry(uint64_t hash, uint16_t move, int value, int depth, int bound);
