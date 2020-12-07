@@ -125,7 +125,7 @@ void prefetchTTEntry(uint64_t hash) {
     __builtin_prefetch(bucket);
 }
 
-int getTTEntry(uint64_t hash, uint16_t *move, int *value, int *eval, int *depth, int *bound) {
+int getTTEntry(uint64_t hash, int height, uint16_t *move, int *value, int *eval, int *depth, int *bound) {
 
     const uint16_t hash16 = hash >> 48;
     TTEntry *slots = Table.buckets[hash & Table.hashMask].slots;
@@ -139,7 +139,7 @@ int getTTEntry(uint64_t hash, uint16_t *move, int *value, int *eval, int *depth,
 
             // Copy over the TTEntry and signal success
             *move  = slots[i].move;
-            *value = slots[i].value;
+            *value = valueFromTT(slots[i].value, height); // Adjust any MATE scores
             *eval  = slots[i].eval;
             *depth = slots[i].depth;
             *bound = slots[i].generation & TT_MASK_BOUND;
@@ -150,7 +150,7 @@ int getTTEntry(uint64_t hash, uint16_t *move, int *value, int *eval, int *depth,
     return 0;
 }
 
-void storeTTEntry(uint64_t hash, uint16_t move, int value, int eval, int depth, int bound) {
+void storeTTEntry(uint64_t hash, int height, uint16_t move, int value, int eval, int depth, int bound) {
 
     int i;
     const uint16_t hash16 = hash >> 48;
@@ -177,7 +177,7 @@ void storeTTEntry(uint64_t hash, uint16_t move, int value, int eval, int depth, 
     // Finally, copy the new data into the replaced slot
     replace->depth      = (int8_t)depth;
     replace->generation = (uint8_t)bound | Table.generation;
-    replace->value      = (int16_t)value;
+    replace->value      = (int16_t)valueToTT(value, height);
     replace->eval       = (int16_t)eval;
     replace->move       = (uint16_t)move;
     replace->hash16     = (uint16_t)hash16;
