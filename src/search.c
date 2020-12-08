@@ -428,19 +428,14 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
                 && quietsSeen >= LateMovePruningCounts[improving][depth])
                 skipQuiets = 1;
 
-            // Step 11D (~8 elo). Counter Move Pruning. Moves with poor counter
-            // move history are pruned at near leaf nodes of the search.
-            if (   movePicker.stage > STAGE_COUNTER_MOVE
-                && cmhist < CounterMoveHistoryLimit[improving]
-                && depth - R <= CounterMovePruningDepth[improving])
-                continue;
-
-            // Step 11E (~1.5 elo). Follow Up Move Pruning. Moves with poor
-            // follow up move history are pruned at near leaf nodes of the search.
-            if (   movePicker.stage > STAGE_COUNTER_MOVE
-                && fmhist < FollowUpMoveHistoryLimit[improving]
-                && depth - R <= FollowUpMovePruningDepth[improving])
-                continue;
+            // Step 11D Counter Move Pruning and Follow Up Move Pruning.
+            // If we've reached a quiet move with poor counter or follow up
+            // move history we can skip all the remaining quiets.
+            if (   (cmhist < CounterMoveHistoryLimit[improving]
+                ||  fmhist < FollowUpMoveHistoryLimit[improving])
+                && (depth - R <= CounterMovePruningDepth[improving]
+                ||  depth - R <= FollowUpMovePruningDepth[improving]))
+                skipQuiets = 1;
         }
 
         // Step 12 (~42 elo). Static Exchange Evaluation Pruning. Prune moves which fail
