@@ -199,7 +199,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
-    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
+    int eval, value = -MATE, best = -MATE, noisyThreshold = 0, futilityMargin, seeMargin[2];
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
     MovePicker movePicker;
@@ -362,8 +362,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
         // Try tactical moves which maintain rBeta
         rBeta = MIN(beta + ProbCutMargin, MATE - MAX_PLY - 1);
-        initNoisyMovePicker(&movePicker, thread, rBeta - eval);
-        while ((move = selectNextMove(&movePicker, board, 1)) != NONE_MOVE) {
+        initNoisyMovePicker(&movePicker, thread);
+        while ((move = selectNextMove(&movePicker, board, 1, rBeta - eval)) != NONE_MOVE) {
 
             // Apply move, skip if move is illegal
             if (!apply(thread, board, move)) continue;
@@ -387,7 +387,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Step 10. Initialize the Move Picker and being searching through each
     // move one at a time, until we run out or a move generates a cutoff
     initMovePicker(&movePicker, thread, ttMove);
-    while ((move = selectNextMove(&movePicker, board, skipQuiets)) != NONE_MOVE) {
+    while ((move = selectNextMove(&movePicker, board, skipQuiets, noisyThreshold)) != NONE_MOVE) {
 
         // MultiPV and searchmoves may limit our search options
         if (RootNode && moveExaminedByMultiPV(thread, move)) continue;
@@ -444,13 +444,25 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         }
 
         // Step 12 (~42 elo). Static Exchange Evaluation Pruning. Prune moves which fail
-        // to beat a depth dependent SEE threshold. The use of movePicker.stage
-        // is a speedup, which assumes that good noisy moves have a positive SEE
-        if (    best > -MATE_IN_MAX
+        // to beat a depth dependent SEE threshold.
+        if (    isQuiet
+            &&  best > -MATE_IN_MAX
             &&  depth <= SEEPruningDepth
-            &&  movePicker.stage > STAGE_GOOD_NOISY
             && !staticExchangeEvaluation(board, move, seeMargin[isQuiet]))
             continue;
+
+        // Step 12a. If we're at or below SEE depth, then set the movepicker noisy threshold
+        // to exclude any noisy move below it
+        if (    !isQuiet
+            &&  best > -MATE_IN_MAX
+            &&  depth <= SEEPruningDepth)
+            noisyThreshold = seeMargin[0];
+
+        // Step 12b. If we've reached bad noisy moves with a noisyThreshold set, then all
+        // remaining moves have failed to meet the SEE check and thus there is nothing
+        // more todo
+        if (!isQuiet && noisyThreshold != 0 && movePicker.stage > STAGE_GOOD_NOISY)
+            break;
 
         // Apply move, skip if move is illegal
         if (!apply(thread, board, move))
@@ -663,8 +675,8 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
     // Step 7. Move Generation and Looping. Generate all tactical moves
     // and return those which are winning via SEE, and also strong enough
     // to beat the margin computed in the Delta Pruning step found above
-    initNoisyMovePicker(&movePicker, thread, MAX(1, alpha - eval - QSSeeMargin));
-    while ((move = selectNextMove(&movePicker, board, 1)) != NONE_MOVE) {
+    initNoisyMovePicker(&movePicker, thread);
+    while ((move = selectNextMove(&movePicker, board, 1, MAX(1, alpha - eval - QSSeeMargin))) != NONE_MOVE) {
 
         // Search the next ply if the move is legal
         if (!apply(thread, board, move)) continue;
@@ -803,7 +815,7 @@ int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta
 
     // Iterate over each move, except for the table move
     initSingularMovePicker(&movePicker, thread, mp->tableMove);
-    while ((move = selectNextMove(&movePicker, board, skipQuiets)) != NONE_MOVE) {
+    while ((move = selectNextMove(&movePicker, board, skipQuiets, 0)) != NONE_MOVE) {
 
         assert(move != mp->tableMove); // Skip the table move
 
