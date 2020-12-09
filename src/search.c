@@ -407,7 +407,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         if (   best > -MATE_IN_MAX
             && depth <= LateMovePruningDepth
             && movesSeen >= LateMovePruningCounts[improving][depth])
-            skipQuiets = 1;
+            break;
 
         // Step 12 (~175 elo). Quiet Move Pruning. Prune any quiet move that meets one
         // of the criteria below, only after proving a non mated line exists
