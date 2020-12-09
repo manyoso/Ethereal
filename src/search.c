@@ -197,9 +197,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int hist = 0, cmhist = 0, fmhist = 0;
     int quietsSeen = 0, quietsPlayed = 0, capturesPlayed = 0, played = 0;
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
-    int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
-    int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
-    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
+    int R, newDepth, rAlpha, rBeta, oldAlpha = alpha, oldBeta = beta;
+    int inCheck, isQuiet, improving, extension, singular, probcut, skipQuiets = 0;
+    int eval, value = -MATE, rValue = -MATE, best = -MATE, futilityMargin, seeMargin[2];
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
     MovePicker movePicker;
@@ -352,36 +352,12 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         if (value >= beta) return beta;
     }
 
-    // Step 9 (~9 elo). Probcut Pruning. If we have a good capture that causes a cutoff
-    // with an adjusted beta value at a reduced search depth, we expect that it will
-    // cause a similar cutoff at this search depth, with a normal beta value
+    // Initialize whether to include probcut pruning
     if (   !PvNode
-        &&  depth >= ProbCutDepth
-        &&  abs(beta) < MATE_IN_MAX
-        && (eval >= beta || eval + moveBestCaseValue(board) >= beta + ProbCutMargin)) {
-
-        // Try tactical moves which maintain rBeta
-        rBeta = MIN(beta + ProbCutMargin, MATE - MAX_PLY - 1);
-        initNoisyMovePicker(&movePicker, thread, rBeta - eval);
-        while ((move = selectNextMove(&movePicker, board, 1)) != NONE_MOVE) {
-
-            // Apply move, skip if move is illegal
-            if (!apply(thread, board, move)) continue;
-
-            // For high depths, verify the move first with a depth one search
-            if (depth >= 2 * ProbCutDepth)
-                value = -search(thread, &lpv, -rBeta, -rBeta+1, 1);
-
-            // For low depths, or after the above, verify with a reduced search
-            if (depth < 2 * ProbCutDepth || value >= rBeta)
-                value = -search(thread, &lpv, -rBeta, -rBeta+1, depth-4);
-
-            // Revert the board state
-            revert(thread, board, move);
-
-            // Probcut failed high verifying the cutoff
-            if (value >= rBeta) return value;
-        }
+        && depth >= ProbCutDepth
+        &&  abs(oldBeta) < MATE_IN_MAX
+        && (eval >= oldBeta || eval + moveBestCaseValue(board) >= oldBeta + ProbCutMargin)) {
+        probcut = 1;
     }
 
     // Step 10. Initialize the Move Picker and being searching through each
@@ -455,6 +431,32 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Apply move, skip if move is illegal
         if (!apply(thread, board, move))
             continue;
+
+        // Step 9 (~9 elo). Probcut Pruning. If we have a good capture that causes a cutoff
+        // with an adjusted beta value at a reduced search depth, we expect that it will
+        // cause a similar cutoff at this search depth, with a normal beta value
+
+        // Try tactical moves which maintain rBeta
+        rBeta = MIN(oldBeta + ProbCutMargin, MATE - MAX_PLY - 1);
+
+        if (   probcut
+            && !isQuiet
+            && movePicker.stage == STAGE_GOOD_NOISY
+            && staticExchangeEvaluation(board, move, rBeta - eval)) {
+            // For high depths, verify the move first with a depth one search
+            if (depth >= 2 * ProbCutDepth)
+                rValue = -search(thread, &lpv, -rBeta, -rBeta+1, 1);
+
+            // For low depths, or after the above, verify with a reduced search
+            if (depth < 2 * ProbCutDepth || rValue >= rBeta)
+                rValue = -search(thread, &lpv, -rBeta, -rBeta+1, depth-4);
+
+            // Probcut failed high verifying the cutoff
+            if (rValue >= rBeta) {
+                revert(thread, board, move);
+                return rValue;
+            }
+        }
 
         played += 1;
         if (isQuiet) quietsTried[quietsPlayed++] = move;
