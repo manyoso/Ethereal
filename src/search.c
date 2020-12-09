@@ -195,7 +195,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
     unsigned tbresult;
     int hist = 0, cmhist = 0, fmhist = 0;
-    int quietsSeen = 0, quietsPlayed = 0, capturesPlayed = 0, played = 0;
+    int movesSeen = 0, quietsPlayed = 0, capturesPlayed = 0, played = 0;
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
@@ -393,8 +393,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         if (RootNode && moveExaminedByMultiPV(thread, move)) continue;
         if (RootNode &&    !moveIsInRootMoves(thread, move)) continue;
 
-        // Track Quiets Seen for Late Move Pruning
-        quietsSeen += (isQuiet = !moveIsTactical(board, move));
+        // Track Moves Seen for Late Move Pruning
+        movesSeen += 1;
+        isQuiet = !moveIsTactical(board, move);
 
         // All moves have one or more History scores
         hist = !isQuiet ? getCaptureHistory(thread, move)
@@ -402,45 +403,47 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
         // Step 11 (~175 elo). Quiet Move Pruning. Prune any quiet move that meets one
         // of the criteria below, only after proving a non mated line exists
-        if (isQuiet && best > -MATE_IN_MAX) {
-
-            // Base LMR value that we expect to use later
-            R = LMRTable[MIN(depth, 63)][MIN(played, 63)];
-
-            // Step 11A (~3 elo). Futility Pruning. If our score is far below alpha,
-            // and we don't expect anything from this move, we can skip all other quiets
-            if (   depth <= FutilityPruningDepth
-                && eval + futilityMargin <= alpha
-                && hist < FutilityPruningHistoryLimit[improving])
-                skipQuiets = 1;
-
-            // Step 11B (~2.5 elo). Futility Pruning. If our score is not only far
-            // below alpha but still far below alpha after adding the FutilityMargin,
-            // we can somewhat safely skip all quiet moves after this one
-            if (   depth <= FutilityPruningDepth
-                && eval + futilityMargin + FutilityMarginNoHistory <= alpha)
-                skipQuiets = 1;
+        if (best > -MATE_IN_MAX) {
 
             // Step 11C (~77 elo). Late Move Pruning / Move Count Pruning. If we
             // have tried many quiets in this position already, and we don't expect
             // anything from this move, we can skip all the remaining quiets
             if (   depth <= LateMovePruningDepth
-                && quietsSeen >= LateMovePruningCounts[improving][depth])
+                && movesSeen >= LateMovePruningCounts[improving][depth])
                 skipQuiets = 1;
 
-            // Step 11D (~8 elo). Counter Move Pruning. Moves with poor counter
-            // move history are pruned at near leaf nodes of the search.
-            if (   movePicker.stage > STAGE_COUNTER_MOVE
-                && cmhist < CounterMoveHistoryLimit[improving]
-                && depth - R <= CounterMovePruningDepth[improving])
-                continue;
+            if (isQuiet) {
+                // Base LMR value that we expect to use later
+                R = LMRTable[MIN(depth, 63)][MIN(played, 63)];
 
-            // Step 11E (~1.5 elo). Follow Up Move Pruning. Moves with poor
-            // follow up move history are pruned at near leaf nodes of the search.
-            if (   movePicker.stage > STAGE_COUNTER_MOVE
-                && fmhist < FollowUpMoveHistoryLimit[improving]
-                && depth - R <= FollowUpMovePruningDepth[improving])
-                continue;
+                // Step 11A (~3 elo). Futility Pruning. If our score is far below alpha,
+                // and we don't expect anything from this move, we can skip all other quiet moves
+                if (   depth <= FutilityPruningDepth
+                    && eval + futilityMargin <= alpha
+                    && hist < FutilityPruningHistoryLimit[improving])
+                    skipQuiets = 1;
+
+                // Step 11B (~2.5 elo). Futility Pruning. If our score is not only far
+                // below alpha but still far below alpha after adding the FutilityMargin,
+                // we can somewhat safely skip all quiet moves after this one
+                if (   depth <= FutilityPruningDepth
+                    && eval + futilityMargin + FutilityMarginNoHistory <= alpha)
+                    skipQuiets = 1;
+
+                // Step 11D (~8 elo). Counter Move Pruning. Moves with poor counter
+                // move history are pruned at near leaf nodes of the search.
+                if (   movePicker.stage > STAGE_COUNTER_MOVE
+                    && cmhist < CounterMoveHistoryLimit[improving]
+                    && depth - R <= CounterMovePruningDepth[improving])
+                    continue;
+
+                // Step 11E (~1.5 elo). Follow Up Move Pruning. Moves with poor
+                // follow up move history are pruned at near leaf nodes of the search.
+                if (   movePicker.stage > STAGE_COUNTER_MOVE
+                    && fmhist < FollowUpMoveHistoryLimit[improving]
+                    && depth - R <= FollowUpMovePruningDepth[improving])
+                    continue;
+            }
         }
 
         // Step 12 (~42 elo). Static Exchange Evaluation Pruning. Prune moves which fail
