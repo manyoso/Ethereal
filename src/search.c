@@ -443,7 +443,16 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
                 continue;
         }
 
-        // Step 12 (~42 elo). Static Exchange Evaluation Pruning. Prune moves which fail
+        // Step 12. Static Exchange Evaluation Pruning. This is a speedup
+        // which assumes that the movepicker has already diagnosed bad noisy
+        // moves as failing an SEE with a zero threshold which is exactly
+        // what we get at the leaves with depth == 0
+        if (    best > -MATE_IN_MAX
+            &&  movePicker.stage == STAGE_BAD_NOISY
+            &&  seeMargin[0] == 0)
+            break;
+
+        // Step 12a (~42 elo). Static Exchange Evaluation Pruning. Prune moves which fail
         // to beat a depth dependent SEE threshold. The use of movePicker.stage
         // is a speedup, which assumes that good noisy moves have a positive SEE
         if (    best > -MATE_IN_MAX
