@@ -28,11 +28,13 @@ static const int HistoryDivisor = 512;
 
 void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int depth);
 void updateKillerMoves(Thread *thread, uint16_t move);
+void updateNoisyKillerMoves(Thread *thread, uint16_t move);
 
-void updateCaptureHistories(Thread *thread, uint16_t best, uint16_t *moves, int length, int depth);
+void updateCaptureHistories(Thread *thread, uint16_t best, int bestIsTactical, uint16_t *moves, int length, int depth);
 void getCaptureHistories(Thread *thread, uint16_t *moves, int *scores, int start, int length);
 int getCaptureHistory(Thread *thread, uint16_t move);
 
 int getHistory(Thread *thread, uint16_t move, int *cmhist, int *fmhist);
 void getHistoryScores(Thread *thread, uint16_t *moves, int *scores, int start, int length);
 void getRefutationMoves(Thread *thread, uint16_t *killer1, uint16_t *killer2, uint16_t *counter);
+void getNoisyRefutationMoves(Thread *thread, uint16_t *noisyKiller1, uint16_t *noisyKiller2);

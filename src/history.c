@@ -97,10 +97,24 @@ void updateKillerMoves(Thread *thread, uint16_t move) {
     thread->killers[thread->height][0] = move;
 }
 
+void updateNoisyKillerMoves(Thread *thread, uint16_t move) {
 
-void updateCaptureHistories(Thread *thread, uint16_t best, uint16_t *moves, int length, int depth) {
+    // Avoid saving the same Killer Move twice
+    if (thread->noisyKillers[thread->height][0] == move) return;
+
+    thread->noisyKillers[thread->height][1] = thread->noisyKillers[thread->height][0];
+    thread->noisyKillers[thread->height][0] = move;
+}
+
+void updateCaptureHistories(Thread *thread, uint16_t best, int bestIsTactical, uint16_t *moves, int length, int depth) {
 
     const int bonus = MIN(depth * depth, HistoryMax);
+
+    // Update Noisy Killer Moves (Avoid duplicates)
+    if (bestIsTactical && thread->noisyKillers[thread->height][0] != best) {
+        thread->noisyKillers[thread->height][1] = thread->noisyKillers[thread->height][0];
+        thread->noisyKillers[thread->height][0] = best;
+    }
 
     for (int i = 0; i < length; i++) {
 
@@ -243,4 +257,10 @@ void getRefutationMoves(Thread *thread, uint16_t *killer1, uint16_t *killer2, ui
     // Set Counter Move if one exists
     if (previous == NONE_MOVE || previous == NULL_MOVE) *counter = NONE_MOVE;
     else *counter = thread->cmtable[!thread->board.turn][cmPiece][cmTo];
+}
+
+void getNoisyRefutationMoves(Thread *thread, uint16_t *noisyKiller1, uint16_t *noisyKiller2) {
+    // Set Killer Moves by height
+    *noisyKiller1 = thread->noisyKillers[thread->height][0];
+    *noisyKiller2 = thread->noisyKillers[thread->height][1];
 }

@@ -59,6 +59,7 @@ struct Thread {
     ALIGN64 PKTable pktable;
 
     ALIGN64 KillerTable killers;
+    ALIGN64 KillerTable noisyKillers;
     ALIGN64 CounterMoveTable cmtable;
 
     ALIGN64 HistoryTable history;

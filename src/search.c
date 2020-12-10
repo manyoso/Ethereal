@@ -316,6 +316,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     thread->killers[thread->height+1][0] = NONE_MOVE;
     thread->killers[thread->height+1][1] = NONE_MOVE;
 
+    thread->noisyKillers[thread->height+1][0] = NONE_MOVE;
+    thread->noisyKillers[thread->height+1][1] = NONE_MOVE;
+
     // ------------------------------------------------------------------------
     // All elo estimates as of Ethereal 11.80, @ 12s+0.12 @ 1.275mnps
     // ------------------------------------------------------------------------
@@ -585,7 +588,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         updateHistoryHeuristics(thread, quietsTried, quietsPlayed, depth);
 
     if (best >= beta)
-        updateCaptureHistories(thread, bestMove, capturesTried, capturesPlayed, depth);
+        updateCaptureHistories(thread, bestMove, moveIsTactical(board, bestMove), capturesTried, capturesPlayed, depth);
 
     // Step 21. Store results of search into the Transposition Table. We do
     // not overwrite the Root entry from the first line of play we examined
@@ -828,6 +831,8 @@ int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta
     if (value > rBeta && rBeta >= beta) {
         if (!moveIsTactical(board, move))
             updateKillerMoves(thread, move);
+        else
+            updateNoisyKillerMoves(thread, move);
         mp->stage = STAGE_DONE;
     }
 

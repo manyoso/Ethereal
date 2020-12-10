@@ -54,6 +54,9 @@ void initMovePicker(MovePicker *mp, Thread *thread, uint16_t ttMove) {
     // Lookup our refutations (killers and counter moves)
     getRefutationMoves(thread, &mp->killer1, &mp->killer2, &mp->counter);
 
+    // Lookup our noisy refutations (noisyKillers)
+    getNoisyRefutationMoves(thread, &mp->noisyKiller1, &mp->noisyKiller2);
+
     // General housekeeping
     mp->threshold = 0;
     mp->thread = thread;
@@ -64,17 +67,19 @@ void initSingularMovePicker(MovePicker *mp, Thread *thread, uint16_t ttMove) {
 
     // Simply skip over the TT move
     initMovePicker(mp, thread, ttMove);
-    mp->stage = STAGE_GENERATE_NOISY;
-
+    mp->stage = STAGE_NOISY_KILLER_1;
 }
 
 void initNoisyMovePicker(MovePicker *mp, Thread *thread, int threshold) {
 
     // Start with just the noisy moves
-    mp->stage = STAGE_GENERATE_NOISY;
+    mp->stage = STAGE_NOISY_KILLER_1;
 
     // Skip all of the special (refutation and table) moves
     mp->tableMove = mp->killer1 = mp->killer2 = mp->counter = NONE_MOVE;
+
+    // Lookup our noisy refutations (noisyKillers)
+    getNoisyRefutationMoves(thread, &mp->noisyKiller1, &mp->noisyKiller2);
 
     // General housekeeping
     mp->threshold = threshold;
@@ -91,9 +96,31 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
         case STAGE_TABLE:
 
             // Play table move if it is pseudo legal
-            mp->stage = STAGE_GENERATE_NOISY;
+            mp->stage = STAGE_NOISY_KILLER_1;
             if (moveIsPseudoLegal(board, mp->tableMove))
                 return mp->tableMove;
+
+            /* fallthrough */
+
+        case STAGE_NOISY_KILLER_1:
+
+            // Play killer move if not yet played, and pseudo legal
+            mp->stage = STAGE_NOISY_KILLER_2;
+            if (    mp->noisyKiller1 != mp->tableMove
+                &&  moveIsPseudoLegal(board, mp->noisyKiller1)
+                &&  staticExchangeEvaluation(board, mp->noisyKiller1, mp->threshold))
+                return mp->noisyKiller1;
+
+            /* fallthrough */
+
+        case STAGE_NOISY_KILLER_2:
+
+            // Play killer move if not yet played, and pseudo legal
+            mp->stage = STAGE_GENERATE_NOISY;
+            if (    mp->noisyKiller2 != mp->tableMove
+                &&  moveIsPseudoLegal(board, mp->noisyKiller2)
+                &&  staticExchangeEvaluation(board, mp->noisyKiller2, mp->threshold))
+                return mp->noisyKiller2;
 
             /* fallthrough */
 
@@ -129,8 +156,12 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
                     // Reduce effective move list size
                     bestMove = popMove(&mp->noisySize, mp->moves, mp->values, best);
 
-                    // Don't play the table move twice
+                    // Don't play the table move or noisyKillers twice
                     if (bestMove == mp->tableMove)
+                        return selectNextMove(mp, board, skipQuiets);
+                    if (bestMove == mp->noisyKiller1)
+                        return selectNextMove(mp, board, skipQuiets);
+                    if (bestMove == mp->noisyKiller2)
                         return selectNextMove(mp, board, skipQuiets);
 
                     // Don't play the refutation moves twice
@@ -210,6 +241,8 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
                 // Don't play a move more than once
                 if (   bestMove == mp->tableMove
+                    || bestMove == mp->noisyKiller1
+                    || bestMove == mp->noisyKiller2
                     || bestMove == mp->killer1
                     || bestMove == mp->killer2
                     || bestMove == mp->counter)
@@ -233,6 +266,8 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
                 // Don't play a move more than once
                 if (   bestMove == mp->tableMove
+                    || bestMove == mp->noisyKiller1
+                    || bestMove == mp->noisyKiller2
                     || bestMove == mp->killer1
                     || bestMove == mp->killer2
                     || bestMove == mp->counter)
