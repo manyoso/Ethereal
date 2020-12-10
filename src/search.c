@@ -700,6 +700,14 @@ int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
     int from, to, type, colour, balance, nextVictim;
     uint64_t bishops, rooks, occupied, attackers, myAttackers;
 
+    // Balance is the value of the move minus threshold. Function
+    // call takes care for Enpass, Promotion and Castling moves.
+    balance = moveEstimatedValue(board, move) - threshold;
+
+    // If the move doesn't gain enough to beat the threshold, don't look any
+    // further. This is only relevant for movepicker SEE calls.
+    if (balance < 0) return 0;
+
     // Unpack move information
     from  = MoveFrom(move);
     to    = MoveTo(move);
@@ -709,14 +717,6 @@ int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
     nextVictim = type != PROMOTION_MOVE
                ? pieceType(board->squares[from])
                : MovePromoPiece(move);
-
-    // Balance is the value of the move minus threshold. Function
-    // call takes care for Enpass, Promotion and Castling moves.
-    balance = moveEstimatedValue(board, move) - threshold;
-
-    // If the move doesn't gain enough to beat the threshold, don't look any
-    // further. This is only relevant for movepicker SEE calls.
-    if (balance < 0) return 0;
 
     // Worst case is losing the moved piece
     balance -= SEEPieceValues[nextVictim];
