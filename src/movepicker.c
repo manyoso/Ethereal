@@ -64,7 +64,7 @@ void initSingularMovePicker(MovePicker *mp, Thread *thread, uint16_t ttMove) {
 
     // Simply skip over the TT move
     initMovePicker(mp, thread, ttMove);
-    mp->stage = STAGE_GENERATE_NOISY;
+    mp->stage = STAGE_KILLER_1;
 
 }
 
@@ -91,11 +91,11 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
         case STAGE_TABLE:
 
             // Play table move if it is pseudo legal
-            mp->stage = STAGE_GENERATE_NOISY;
+            mp->stage = mp->type == NORMAL_PICKER ? STAGE_KILLER_1 : STAGE_GENERATE_NOISY;
             if (moveIsPseudoLegal(board, mp->tableMove))
                 return mp->tableMove;
 
-            /* fallthrough */
+            return selectNextMove(mp, board, skipQuiets);
 
         case STAGE_GENERATE_NOISY:
 
@@ -148,20 +148,20 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
                 return selectNextMove(mp, board, skipQuiets);
             }
 
-            mp->stage = STAGE_KILLER_1;
+            mp->stage = mp->type == NORMAL_PICKER ? STAGE_KILLER_2 : STAGE_KILLER_1;
 
-            /* fallthrough */
+            return selectNextMove(mp, board, skipQuiets);
 
         case STAGE_KILLER_1:
 
             // Play killer move if not yet played, and pseudo legal
-            mp->stage = STAGE_KILLER_2;
+            mp->stage = mp->type == NORMAL_PICKER ? STAGE_GENERATE_NOISY : STAGE_KILLER_2;
             if (   !skipQuiets
                 &&  mp->killer1 != mp->tableMove
                 &&  moveIsPseudoLegal(board, mp->killer1))
                 return mp->killer1;
 
-            /* fallthrough */
+            return selectNextMove(mp, board, skipQuiets);
 
         case STAGE_KILLER_2:
 
