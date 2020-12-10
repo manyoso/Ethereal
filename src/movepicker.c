@@ -92,7 +92,8 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
             // Play table move if it is pseudo legal
             mp->stage = STAGE_GENERATE_NOISY;
-            if (moveIsPseudoLegal(board, mp->tableMove))
+            if (   mp->tableMove != NONE_MOVE && mp->tableMove != NULL_MOVE
+                && moveIsPseudoLegal(board, mp->tableMove))
                 return mp->tableMove;
 
             /* fallthrough */
@@ -158,6 +159,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
             mp->stage = STAGE_KILLER_2;
             if (   !skipQuiets
                 &&  mp->killer1 != mp->tableMove
+                &&  mp->killer1 != NONE_MOVE && mp->killer1 != NULL_MOVE
                 &&  moveIsPseudoLegal(board, mp->killer1))
                 return mp->killer1;
 
@@ -169,6 +171,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
             mp->stage = STAGE_COUNTER_MOVE;
             if (   !skipQuiets
                 &&  mp->killer2 != mp->tableMove
+                &&  mp->killer2 != NONE_MOVE && mp->killer2 != NULL_MOVE
                 &&  moveIsPseudoLegal(board, mp->killer2))
                 return mp->killer2;
 
@@ -182,6 +185,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
                 &&  mp->counter != mp->tableMove
                 &&  mp->counter != mp->killer1
                 &&  mp->counter != mp->killer2
+                &&  mp->counter != NONE_MOVE && mp->counter != NULL_MOVE
                 &&  moveIsPseudoLegal(board, mp->counter))
                 return mp->counter;
 

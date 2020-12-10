@@ -554,6 +554,7 @@ int moveWasLegal(Board *board) {
 
 int moveIsPseudoLegal(Board *board, uint16_t move) {
 
+    assert(move != NONE_MOVE && move != NULL_MOVE);
     int from   = MoveFrom(move);
     int type   = MoveType(move);
     int ftype  = pieceType(board->squares[from]);
@@ -568,8 +569,7 @@ int moveIsPseudoLegal(Board *board, uint16_t move) {
     // Quick check against obvious illegal moves, such as our special move values,
     // moving a piece that is not ours, normal move and enpass moves that have bits
     // set which would otherwise indicate that the move is a castle or a promotion
-    if (   (move == NONE_MOVE || move == NULL_MOVE)
-        || (pieceColour(board->squares[from]) != board->turn)
+    if (   (pieceColour(board->squares[from]) != board->turn)
         || (MovePromoType(move) != PROMOTE_TO_KNIGHT && type == NORMAL_MOVE)
         || (MovePromoType(move) != PROMOTE_TO_KNIGHT && type == ENPASS_MOVE))
         return 0;
