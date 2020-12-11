@@ -198,7 +198,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int movesSeen = 0, quietsPlayed = 0, capturesPlayed = 0, played = 0;
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
-    int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
+    int inCheck, isQuiet, improving, extension, singular, moveCountPruning, skipQuiets = 0;
     int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
@@ -404,9 +404,11 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Step 11 (~80 elo). Late Move Pruning / Move Count Pruning. If we
         // have seen many moves in this position already, and we don't expect
         // anything from this move, we can skip all the remaining quiets
-        if (   best > -MATE_IN_MAX
+        moveCountPruning = best > -MATE_IN_MAX
             && depth <= LateMovePruningDepth
-            && movesSeen >= LateMovePruningCounts[improving][depth])
+            && movesSeen >= LateMovePruningCounts[improving][depth];
+
+        if (moveCountPruning)
             skipQuiets = 1;
 
         // Step 12 (~175 elo). Quiet Move Pruning. Prune any quiet move that meets one
@@ -518,9 +520,17 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         }
 
         // Step 16B (~2 elo). Noisy Late Move Reductions. The same as Step 15A, but
-        // only applied to Tactical moves with unusually poor Capture History scores
-        else if (!isQuiet && depth > 2 && played > 1)
-            R = MIN(depth - 1, MAX(1, MIN(3, 3 - (hist + 4000) / 2000)));
+        // only applied to Tactical moves
+        else if (!isQuiet && depth > 2 && played > 1) {
+            // Unusually poor Capture History scores
+            R = MIN(3, 3 - (hist + 4000) / 2000);
+
+            // Increase for move count based pruning
+            R += moveCountPruning;
+
+            // Don't extend or drop into QS
+            R = MIN(depth - 1,  MAX(R, 1));
+        }
 
         // No LMR conditions were met. Use a Standard Reduction
         else R = 1;
