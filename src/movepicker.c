@@ -25,6 +25,7 @@
 #include "movepicker.h"
 #include "types.h"
 #include "thread.h"
+#include <string.h>
 
 static uint16_t popMove(int *size, uint16_t *moves, int *values, int index) {
     uint16_t popped = moves[index];
@@ -65,7 +66,7 @@ void initSingularMovePicker(MovePicker *mp, Thread *thread, uint16_t ttMove) {
     // Simply skip over the TT move
     initMovePicker(mp, thread, ttMove);
     mp->stage = STAGE_GENERATE_NOISY;
-
+    mp->noisyCopySize = -1;
 }
 
 void initNoisyMovePicker(MovePicker *mp, Thread *thread, int threshold) {
@@ -80,6 +81,22 @@ void initNoisyMovePicker(MovePicker *mp, Thread *thread, int threshold) {
     mp->threshold = threshold;
     mp->thread = thread;
     mp->type = NOISY_PICKER;
+    mp->noisyCopySize = -1;
+}
+
+void initProbcutMovePicker(MovePicker *mp, Thread *thread, int threshold) {
+
+    // Start with just the noisy moves
+    mp->stage = STAGE_GENERATE_NOISY;
+
+    // Skip all of the special (refutation and table) moves
+    mp->tableMove = mp->killer1 = mp->killer2 = mp->counter = NONE_MOVE;
+
+    // General housekeeping
+    mp->threshold = threshold;
+    mp->thread = thread;
+    mp->type = PROBCUT_PICKER;
+    mp->noisyCopySize = -1;
 }
 
 uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
@@ -102,8 +119,18 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
             // Generate and evaluate noisy moves. mp->split sets a break point
             // to seperate the noisy from the quiet moves, so that we can skip
             // some of the noisy moves during STAGE_GOOD_NOISY and return later
-            mp->noisySize = mp->split = genAllNoisyMoves(board, mp->moves);
-            getCaptureHistories(mp->thread, mp->moves, mp->values, 0, mp->noisySize);
+            if (mp->noisyCopySize < 0) {
+                mp->noisySize = mp->split = genAllNoisyMoves(board, mp->moves);
+                getCaptureHistories(mp->thread, mp->moves, mp->values, 0, mp->noisySize);
+                if (mp->type == PROBCUT_PICKER) {
+                    memcpy(mp->noisyCopy, mp->moves, sizeof(uint16_t) * mp->noisySize);
+                    mp->noisyCopySize = mp->noisySize;
+                }
+            } else {
+                memcpy(mp->moves, mp->noisyCopy, sizeof(uint16_t) * mp->noisyCopySize);
+                mp->noisySize = mp->split = mp->noisyCopySize;
+                getCaptureHistories(mp->thread, mp->moves, mp->values, 0, mp->noisySize);
+            }
             mp->stage = STAGE_GOOD_NOISY;
 
             /* fallthrough */
@@ -226,7 +253,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
         case STAGE_BAD_NOISY:
 
             // Check to see if there are still more noisy moves
-            if (mp->noisySize && mp->type != NOISY_PICKER) {
+            if (mp->noisySize && mp->type == NORMAL_PICKER) {
 
                 // Reduce effective move list size
                 bestMove = popMove(&mp->noisySize, mp->moves, mp->values, 0);
