@@ -226,7 +226,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
         case STAGE_BAD_NOISY:
 
             // Check to see if there are still more noisy moves
-            if (mp->noisySize && mp->type != NOISY_PICKER) {
+            if (!skipQuiets && mp->noisySize && mp->type != NOISY_PICKER) {
 
                 // Reduce effective move list size
                 bestMove = popMove(&mp->noisySize, mp->moves, mp->values, 0);
