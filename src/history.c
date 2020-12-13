@@ -97,29 +97,38 @@ void updateKillerMoves(Thread *thread, uint16_t move) {
     thread->killers[thread->height][0] = move;
 }
 
+static void updateCaptureHistory(Thread *thread, uint16_t move, int delta) {
 
-void updateCaptureHistories(Thread *thread, uint16_t best, uint16_t *moves, int length, int depth) {
+    const int to = MoveTo(move);
+    const int from = MoveFrom(move);
+
+    int piece = pieceType(thread->board.squares[from]);
+    int captured = pieceType(thread->board.squares[to]);
+
+    if (MoveType(move) == ENPASS_MOVE   ) captured = PAWN;
+    if (MoveType(move) == PROMOTION_MOVE) captured = PAWN;
+
+    assert(PAWN <= piece && piece <= KING);
+    assert(PAWN <= captured && captured <= QUEEN);
+
+    int entry = thread->chistory[piece][to][captured];
+    entry += HistoryMultiplier * delta - entry * abs(delta) / HistoryDivisor;
+    thread->chistory[piece][to][captured] = entry;
+}
+
+void updateCaptureHistories(Thread *thread, uint16_t best, uint16_t *captures, int capturesLength,
+                            uint16_t *badCaptures, int badCapturesLength, int depth) {
 
     const int bonus = MIN(depth * depth, HistoryMax);
 
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < capturesLength; i++) {
+        const int delta = captures[i] == best ? bonus : -bonus;
+        updateCaptureHistory(thread, captures[i], delta);
+    }
 
-        const int to = MoveTo(moves[i]);
-        const int from = MoveFrom(moves[i]);
-        const int delta = moves[i] == best ? bonus : -bonus;
-
-        int piece = pieceType(thread->board.squares[from]);
-        int captured = pieceType(thread->board.squares[to]);
-
-        if (MoveType(moves[i]) == ENPASS_MOVE   ) captured = PAWN;
-        if (MoveType(moves[i]) == PROMOTION_MOVE) captured = PAWN;
-
-        assert(PAWN <= piece && piece <= KING);
-        assert(PAWN <= captured && captured <= QUEEN);
-
-        int entry = thread->chistory[piece][to][captured];
-        entry += HistoryMultiplier * delta - entry * abs(delta) / HistoryDivisor;
-        thread->chistory[piece][to][captured] = entry;
+    for (int i = 0; i < badCapturesLength; i++) {
+        const int delta = badCaptures[i] == best ? bonus : 2 * -bonus;
+        updateCaptureHistory(thread, badCaptures[i], delta);
     }
 }
 
