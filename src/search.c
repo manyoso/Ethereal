@@ -202,6 +202,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
+    int quietsScores[MAX_MOVES];
     MovePicker movePicker;
     PVariation lpv;
 
@@ -547,6 +548,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Revert the board state
         revert(thread, board, move);
 
+        if (isQuiet) quietsScores[quietsPlayed-1] = value;
+
         // Step 18. Update search stats for the best move and its value. Update
         // our lower bound (alpha) if exceeded, and also update the PV in that case
         if (value > best) {
@@ -582,7 +585,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // We also update Capture History Heuristics, which augment or replace MVV-LVA.
 
     if (best >= beta && !moveIsTactical(board, bestMove))
-        updateHistoryHeuristics(thread, quietsTried, quietsPlayed, depth);
+        updateHistoryHeuristics(thread, oldAlpha, quietsTried, quietsScores, quietsPlayed, depth);
 
     if (best >= beta)
         updateCaptureHistories(thread, bestMove, capturesTried, capturesPlayed, depth);

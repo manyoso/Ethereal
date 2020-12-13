@@ -26,7 +26,8 @@ static const int HistoryMax = 400;
 static const int HistoryMultiplier = 32;
 static const int HistoryDivisor = 512;
 
-void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int depth);
+void updateHistoryHeuristics(Thread *thread, int alpha, uint16_t *moves,
+                             int *scores, int length, int depth);
 void updateKillerMoves(Thread *thread, uint16_t move);
 
 void updateCaptureHistories(Thread *thread, uint16_t best, uint16_t *moves, int length, int depth);
