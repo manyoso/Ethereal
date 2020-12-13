@@ -44,15 +44,7 @@ void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int de
     int fmPiece = thread->pieceStack[thread->height-2];
     int fmTo = MoveTo(follow);
 
-    // Update Killer Moves (Avoid duplicates)
-    if (thread->killers[thread->height][0] != bestMove) {
-        thread->killers[thread->height][1] = thread->killers[thread->height][0];
-        thread->killers[thread->height][0] = bestMove;
-    }
-
-    // Update Counter Moves (BestMove refutes the previous move)
-    if (counter != NONE_MOVE && counter != NULL_MOVE)
-        thread->cmtable[!colour][cmPiece][cmTo] = bestMove;
+    updateKillersAndCounters(thread, bestMove);
 
     // If the 1st quiet move failed-high below depth 4, we don't update history tables
     // Depth 0 gives no bonus in any case
@@ -84,15 +76,24 @@ void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int de
     }
 }
 
-void updateKillerMoves(Thread *thread, uint16_t move) {
+void updateKillersAndCounters(Thread *thread, uint16_t bestMove) {
 
-    // Avoid saving the same Killer Move twice
-    if (thread->killers[thread->height][0] == move) return;
+    // Update Killer Moves (Avoid duplicates)
+    if (thread->killers[thread->height][0] != bestMove) {
+        thread->killers[thread->height][1] = thread->killers[thread->height][0];
+        thread->killers[thread->height][0] = bestMove;
+    }
 
-    thread->killers[thread->height][1] = thread->killers[thread->height][0];
-    thread->killers[thread->height][0] = move;
+    // Extract information from last move
+    const uint16_t counter = thread->moveStack[thread->height-1];
+    const int cmPiece = thread->pieceStack[thread->height-1];
+    const int cmTo = MoveTo(counter);
+    const int colour = thread->board.turn;
+
+    // Update Counter Moves (BestMove refutes the previous move)
+    if (counter != NONE_MOVE && counter != NULL_MOVE)
+        thread->cmtable[!colour][cmPiece][cmTo] = bestMove;
 }
-
 
 void updateCaptureHistories(Thread *thread, uint16_t best, uint16_t *moves, int length, int depth) {
 
