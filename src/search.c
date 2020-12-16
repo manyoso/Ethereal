@@ -699,9 +699,6 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
 
 int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
 
-    if (threshold <= -1300 /*always wins SEE*/)
-        return 1;
-
     int from, to, type, colour, balance, nextVictim;
     uint64_t bishops, rooks, occupied, attackers, myAttackers;
 
