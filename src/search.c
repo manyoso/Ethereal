@@ -352,16 +352,18 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         if (value >= beta) return beta;
     }
 
+    // Try tactical moves which maintain rBeta
+    rBeta = MIN(beta + ProbCutMargin, MATE - MAX_PLY - 1);
+
     // Step 9 (~9 elo). Probcut Pruning. If we have a good capture that causes a cutoff
     // with an adjusted beta value at a reduced search depth, we expect that it will
     // cause a similar cutoff at this search depth, with a normal beta value
     if (   !PvNode
         &&  depth >= ProbCutDepth
         &&  abs(beta) < MATE_IN_MAX
-        && (eval >= beta || eval + moveBestCaseValue(board) >= beta + ProbCutMargin)) {
+        && (eval >= beta || eval + moveBestCaseValue(board) >= beta + ProbCutMargin)
+        && rBeta - eval < 2501 /*greater than 2500 always fails SEE*/) {
 
-        // Try tactical moves which maintain rBeta
-        rBeta = MIN(beta + ProbCutMargin, MATE - MAX_PLY - 1);
         initNoisyMovePicker(&movePicker, thread, rBeta - eval);
         while ((move = selectNextMove(&movePicker, board, 1)) != NONE_MOVE) {
 
@@ -696,6 +698,9 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
 }
 
 int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
+
+    if (threshold <= -1300 /*always wins SEE*/)
+        return 1;
 
     int from, to, type, colour, balance, nextVictim;
     uint64_t bishops, rooks, occupied, attackers, myAttackers;
