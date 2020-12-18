@@ -329,6 +329,13 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         &&  eval - BetaMargin * depth > beta)
         return eval;
 
+    // Static delta pruning for main search loop
+    if (   !PvNode
+        && !inCheck
+        &&  depth <= StaticDeltaPruningDepth
+        &&  eval + StaticDeltaMargin <= alpha)
+        return eval;
+
     // Step 8 (~93 elo). Null Move Pruning. If our position is so good that giving
     // our opponent back-to-back moves is still not enough for them to
     // gain control of the game, we can be somewhat safe in saying that

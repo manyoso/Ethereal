@@ -52,6 +52,9 @@ static const int CurrmoveTimerMS = 2500;
 static const int BetaPruningDepth = 8;
 static const int BetaMargin = 85;
 
+static const int StaticDeltaPruningDepth = 5;
+static const int StaticDeltaMargin = 2500;
+
 static const int NullMovePruningDepth = 2;
 
 static const int ProbCutDepth = 5;
