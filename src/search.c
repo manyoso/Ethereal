@@ -377,6 +377,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // Apply move, skip if move is illegal
             if (!apply(thread, board, move)) continue;
 
+            capturesTried[capturesPlayed++] = move;
+
             // For high depths, verify the move first with a depth one search
             if (depth >= 2 * ProbCutDepth)
                 value = -qsearch(thread, &lpv, -rBeta, -rBeta+1);
@@ -389,8 +391,13 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             revert(thread, board, move);
 
             // Probcut failed high verifying the cutoff
-            if (value >= rBeta) return value;
+            if (value >= rBeta) {
+                updateCaptureHistories(thread, move, capturesTried, capturesPlayed, depth-4);
+                return value;
+            }
         }
+
+        capturesPlayed = 0;
     }
 
     // Step 11. Initialize the Move Picker and being searching through each
@@ -811,8 +818,9 @@ int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
 int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta) {
 
     uint16_t move;
-    int skipQuiets = 0, quiets = 0, tacticals = 0;
+    int isQuiet = 0, skipQuiets = 0, quietsPlayed = 0, capturesPlayed = 0;
     int value = -MATE, rBeta = MAX(ttValue - depth, -MATE);
+    uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
 
     MovePicker movePicker;
     PVariation lpv; lpv.length = 0;
@@ -832,21 +840,27 @@ int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta
         value = -search(thread, &lpv, -rBeta-1, -rBeta, depth / 2 - 1);
         revert(thread, board, move);
 
+        isQuiet = !moveIsTactical(board, move);
+
+        if (isQuiet) quietsTried[quietsPlayed++] = move;
+        else capturesTried[capturesPlayed++] = move;
+
         // Move failed high, thus mp->tableMove is not singular
         if (value > rBeta) break;
 
         // Start skipping quiets after a few have been tried
-        moveIsTactical(board, move) ? tacticals++ : quiets++;
-        skipQuiets = quiets >= SingularQuietLimit;
+        skipQuiets = quietsPlayed >= SingularQuietLimit;
 
         // Start skipping bad captures after a few have been tried
-        if (skipQuiets && tacticals >= SingularTacticalLimit) break;
+        if (skipQuiets && capturesPlayed >= SingularTacticalLimit) break;
     }
 
     // MultiCut. We signal the Move Picker to terminate the search
     if (value > rBeta && rBeta >= beta) {
         if (!moveIsTactical(board, move))
-            updateKillerMoves(thread, move);
+            updateHistoryHeuristics(thread, quietsTried, quietsPlayed, depth / 2 - 1);
+
+        updateCaptureHistories(thread, move, capturesTried, capturesPlayed, depth / 2 - 1);
         mp->stage = STAGE_DONE;
     }
 
