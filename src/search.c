@@ -447,10 +447,10 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Step 13 (~42 elo). Static Exchange Evaluation Pruning. Prune moves which fail
         // to beat a depth dependent SEE threshold. The use of movePicker.stage
         // is a speedup, which assumes that good noisy moves have a positive SEE
-        if (    best > -MATE_IN_MAX
-            &&  depth <= SEEPruningDepth
-            &&  movePicker.stage > STAGE_GOOD_NOISY
-            && !staticExchangeEvaluation(board, move, seeMargin[isQuiet]))
+        if (   best > -MATE_IN_MAX
+            && depth <= SEEPruningDepth
+            && movePicker.stage > STAGE_GOOD_NOISY
+            && staticExchangeEvaluation(board, move, seeMargin[isQuiet]) < 0)
             continue;
 
         // Apply move, skip if move is illegal
@@ -716,14 +716,14 @@ int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
 
     // If the move doesn't gain enough to beat the threshold, don't look any
     // further. This is only relevant for movepicker SEE calls.
-    if (balance < 0) return 0;
+    if (balance < 0) return balance;
 
     // Worst case is losing the moved piece
     balance -= SEEPieceValues[nextVictim];
 
     // If the balance is positive even if losing the moved piece,
     // the exchange is guaranteed to beat the threshold.
-    if (balance >= 0) return 1;
+    if (balance >= 0) return balance;
 
     // Grab sliders for updating revealed attackers
     bishops = board->pieces[BISHOP] | board->pieces[QUEEN];
@@ -745,7 +745,11 @@ int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
 
         // If we have no more attackers left we lose
         myAttackers = attackers & board->colours[colour];
-        if (myAttackers == 0ull) break;
+        if (myAttackers == 0ull) {
+            assert(balance < 0);
+            balance = -balance;
+            break;
+        }
 
         // Find our weakest piece to attack with
         for (nextVictim = PAWN; nextVictim <= QUEEN; nextVictim++)
@@ -761,7 +765,7 @@ int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
 
         // A vertical or horizontal move may reveal rook or queen attackers
         if (nextVictim == ROOK || nextVictim == QUEEN)
-            attackers |=   rookAttacks(to, occupied) & rooks;
+            attackers |= rookAttacks(to, occupied) & rooks;
 
         // Make sure we did not add any already used attacks
         attackers &= occupied;
@@ -775,7 +779,7 @@ int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
         // If the balance is non negative after giving away our piece then we win
         if (balance >= 0) {
 
-            // As a slide speed up for move legality checking, if our last attacking
+            // As a slight speed up for move legality checking, if our last attacking
             // piece is a king, and our opponent still has attackers, then we've
             // lost as the move we followed would be illegal
             if (nextVictim == KING && (attackers & board->colours[colour]))
@@ -786,7 +790,7 @@ int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
     }
 
     // Side to move after the loop loses
-    return board->turn != colour;
+    return board->turn != colour ? balance : -balance - 1;
 }
 
 int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta) {
