@@ -33,7 +33,7 @@ struct Board {
 };
 
 struct Undo {
-    uint64_t hash, pkhash, kingAttackers, castleRooks;
+    uint64_t hash, pkhash, kingAttackers, castleRooks, history;
     int epSquare, halfMoveCounter, psqtmat, capturePiece;
 };
 

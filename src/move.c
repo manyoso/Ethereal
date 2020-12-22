@@ -59,14 +59,22 @@ int apply(Thread *thread, Board *board, uint16_t move) {
 
     else {
 
+        // Save the current thread stacks for undo later if necessary
+        uint16_t undoMove = thread->moveStack[thread->height];
+        int undoPiece = thread->pieceStack[thread->height];
+
         // Track some move information for history lookups
         thread->moveStack[thread->height] = move;
         thread->pieceStack[thread->height] = pieceType(board->squares[MoveFrom(move)]);
 
         // Apply the move and reject if illegal
         applyMove(board, move, &thread->undoStack[thread->height]);
-        if (!moveWasLegal(board))
-            return revertMove(board, move, &thread->undoStack[thread->height]), 0;
+        if (!moveWasLegal(board)) {
+            revertMove(board, move, &thread->undoStack[thread->height]);
+            thread->moveStack[thread->height] = undoMove;
+            thread->pieceStack[thread->height] = undoPiece;
+            return 0;
+        }
     }
 
     // Advance the Stack before updating
@@ -101,6 +109,7 @@ void applyMove(Board *board, uint16_t move, Undo *undo) {
     undo->pkhash          = board->pkhash;
     undo->kingAttackers   = board->kingAttackers;
     undo->castleRooks     = board->castleRooks;
+    undo->history         = board->history[board->numMoves];
     undo->epSquare        = board->epSquare;
     undo->halfMoveCounter = board->halfMoveCounter;
     undo->psqtmat         = board->psqtmat;
@@ -323,6 +332,7 @@ void applyNullMove(Board *board, Undo *undo) {
     // Save information which is hard to recompute
     // Some information is certain to stay the same
     undo->hash            = board->hash;
+    undo->history         = board->history[board->numMoves];
     undo->epSquare        = board->epSquare;
     undo->halfMoveCounter = board->halfMoveCounter++;
 
@@ -366,6 +376,7 @@ void revertMove(Board *board, uint16_t move, Undo *undo) {
     board->turn = !board->turn;
     board->numMoves--;
     board->fullMoveCounter--;
+    board->history[board->numMoves] = undo->history;
 
     if (MoveType(move) == NORMAL_MOVE) {
 
@@ -447,6 +458,7 @@ void revertNullMove(Board *board, Undo *undo) {
     // NULL moves simply swap the turn only
     board->turn = !board->turn;
     board->numMoves--;
+    board->history[board->numMoves] = undo->history;
 }
 
 
