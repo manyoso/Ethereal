@@ -121,7 +121,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
                     // Skip moves which fail to beat our SEE margin. We flag those moves
                     // as failed with the value (-1), and then repeat the selection process
-                    if (!staticExchangeEvaluation(board, mp->moves[best], mp->threshold)) {
+                    if (staticExchangeEvaluation(board, mp->moves[best], mp->threshold) < 0) {
                         mp->values[best] = -1;
                         return selectNextMove(mp, board, skipQuiets);
                     }
