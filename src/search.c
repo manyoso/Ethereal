@@ -380,7 +380,12 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             revert(thread, board, move);
 
             // Probcut failed high verifying the cutoff
-            if (value >= rBeta) return value;
+            if (value >= rBeta) {
+                if (!RootNode || !thread->multiPV)
+                    storeTTEntry(board->hash, move, valueToTT(value, thread->height), eval, depth-4, BOUND_LOWER);
+
+                return value;
+            }
         }
     }
 
