@@ -44,15 +44,13 @@ static int getBestMoveIndex(MovePicker *mp, int start, int end) {
     return best;
 }
 
-
 void initMovePicker(MovePicker *mp, Thread *thread, uint16_t ttMove) {
 
     // Start with the table move
     mp->stage = STAGE_TABLE;
     mp->tableMove = ttMove;
 
-    // Lookup our refutations (killers and counter moves)
-    getRefutationMoves(thread, &mp->killer1, &mp->killer2, &mp->counter);
+    mp->killer1 = mp->killer2 = mp->counter = NONE_MOVE;
 
     // General housekeeping
     mp->threshold = 0;
@@ -133,11 +131,6 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
                     if (bestMove == mp->tableMove)
                         return selectNextMove(mp, board, skipQuiets);
 
-                    // Don't play the refutation moves twice
-                    if (bestMove == mp->killer1) mp->killer1 = NONE_MOVE;
-                    if (bestMove == mp->killer2) mp->killer2 = NONE_MOVE;
-                    if (bestMove == mp->counter) mp->counter = NONE_MOVE;
-
                     return bestMove;
                 }
             }
@@ -156,10 +149,13 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
             // Play killer move if not yet played, and pseudo legal
             mp->stage = STAGE_KILLER_2;
-            if (   !skipQuiets
-                &&  mp->killer1 != mp->tableMove
-                &&  moveIsPseudoLegal(board, mp->killer1))
-                return mp->killer1;
+            if (!skipQuiets) {
+                mp->killer1 = getKiller1(mp->thread);
+                if (    mp->killer1 != mp->tableMove
+                    && !moveIsTactical(board, mp->killer1)
+                    &&  moveIsPseudoLegal(board, mp->killer1))
+                    return mp->killer1;
+            }
 
             /* fallthrough */
 
@@ -167,10 +163,13 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
             // Play killer move if not yet played, and pseudo legal
             mp->stage = STAGE_COUNTER_MOVE;
-            if (   !skipQuiets
-                &&  mp->killer2 != mp->tableMove
-                &&  moveIsPseudoLegal(board, mp->killer2))
-                return mp->killer2;
+            if (!skipQuiets) {
+                mp->killer2 = getKiller2(mp->thread);
+                if (    mp->killer2 != mp->tableMove
+                    && !moveIsTactical(board, mp->killer2)
+                    &&  moveIsPseudoLegal(board, mp->killer2))
+                    return mp->killer2;
+            }
 
             /* fallthrough */
 
@@ -178,12 +177,15 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
             // Play counter move if not yet played, and pseudo legal
             mp->stage = STAGE_GENERATE_QUIET;
-            if (   !skipQuiets
-                &&  mp->counter != mp->tableMove
-                &&  mp->counter != mp->killer1
-                &&  mp->counter != mp->killer2
-                &&  moveIsPseudoLegal(board, mp->counter))
-                return mp->counter;
+            if (!skipQuiets) {
+                mp->counter = getCounter(mp->thread);
+                if (    mp->counter != mp->tableMove
+                    &&  mp->counter != mp->killer1
+                    &&  mp->counter != mp->killer2
+                    && !moveIsTactical(board, mp->counter)
+                    &&  moveIsPseudoLegal(board, mp->counter))
+                    return mp->counter;
+            }
 
             /* fallthrough */
 

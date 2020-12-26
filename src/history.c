@@ -229,18 +229,22 @@ void getHistoryScores(Thread *thread, uint16_t *moves, int *scores, int start, i
     }
 }
 
-void getRefutationMoves(Thread *thread, uint16_t *killer1, uint16_t *killer2, uint16_t *counter) {
+uint16_t getKiller1(Thread *thread) {
+    return thread->killers[thread->height][0];
+}
+
+uint16_t getKiller2(Thread *thread) {
+    return thread->killers[thread->height][1];
+}
+
+uint16_t getCounter(Thread *thread) {
 
     // Extract information from last move
     uint16_t previous = thread->moveStack[thread->height-1];
     int cmPiece = thread->pieceStack[thread->height-1];
     int cmTo = MoveTo(previous);
-
-    // Set Killer Moves by height
-    *killer1 = thread->killers[thread->height][0];
-    *killer2 = thread->killers[thread->height][1];
-
-    // Set Counter Move if one exists
-    if (previous == NONE_MOVE || previous == NULL_MOVE) *counter = NONE_MOVE;
-    else *counter = thread->cmtable[!thread->board.turn][cmPiece][cmTo];
+    if (previous == NONE_MOVE || previous == NULL_MOVE)
+        return NONE_MOVE;
+    else
+        return thread->cmtable[!thread->board.turn][cmPiece][cmTo];
 }
