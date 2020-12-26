@@ -384,8 +384,6 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         }
     }
 
-    initMovePicker(&movePicker, thread, ttMove);
-
     // Identify moves which are candidate singular moves
     if (   !RootNode
         &&  depth >= 8
@@ -408,6 +406,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
     // Step 10. Initialize the Move Picker and being searching through each
     // move one at a time, until we run out or a move generates a cutoff
+    initMovePicker(&movePicker, thread, ttMove);
     while ((move = selectNextMove(&movePicker, board, skipQuiets)) != NONE_MOVE) {
 
         // MultiPV and searchmoves may limit our search options
