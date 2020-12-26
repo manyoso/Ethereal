@@ -198,7 +198,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int movesSeen = 0, quietsPlayed = 0, capturesPlayed = 0, played = 0;
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
-    int inCheck, isQuiet, improving, extension, singular = -1, skipQuiets = 0;
+    int inCheck, isQuiet, improving, extension, singular = 0, skipQuiets = 0;
     int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
@@ -391,17 +391,17 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         && (ttBound & BOUND_LOWER)
         &&  moveIsPseudoLegal(board, ttMove)) {
 
-        rBeta = MAX(ttValue - depth, -MATE);
+        rBeta = MAX(ttValue - depth, beta);
         value = singularity(thread, ttMove, depth, rBeta, beta);
 
         // Step 15. MultiCut. Sometimes candidate Singular moves are shown to be non-Singular.
         // If this happens, and the rBeta used is greater than beta, then we have multiple moves
         // which appear to beat beta at a reduced depth.
-        if (value > rBeta && rBeta >= beta)
+        if (value > rBeta)
             return rBeta;
 
         // Move is singular if all other moves failed low
-        singular = value <= rBeta;
+        singular = 1;
     }
 
     // Step 10. Initialize the Move Picker and being searching through each
@@ -491,8 +491,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Transposition Table and appears to beat all other moves by a fair margin. Otherwise,
         // extend for any position where our King is checked. We also selectivly extend moves
         // with very strong continuation histories, so long as they are along the PV line
-        extension = singular != -1 && move == ttMove ? singular
-                  : inCheck || (isQuiet && PvNode && cmhist > HistexLimit && fmhist > HistexLimit);
+        extension = (singular && move == ttMove)
+                  || inCheck || (isQuiet && PvNode && cmhist > HistexLimit && fmhist > HistexLimit);
 
         newDepth = depth + (extension && !RootNode);
 
