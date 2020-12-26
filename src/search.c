@@ -390,7 +390,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     if (   !RootNode
         &&  depth >= 8
         &&  ttDepth >= depth - 2
-        && (ttBound & BOUND_LOWER)) {
+        && (ttBound & BOUND_LOWER)
+        &&  moveIsPseudoLegal(board, ttMove)) {
 
         rBeta = MAX(ttValue - depth, -MATE);
         value = singularity(thread, ttMove, depth, rBeta, beta);
