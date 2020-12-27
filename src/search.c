@@ -479,7 +479,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // extend for any position where our King is checked. We also selectivly extend moves
         // with very strong continuation histories, so long as they are along the PV line
 
-        extension = singular ? singularity(thread, &movePicker, ttValue, depth, beta)
+        extension = singular ? singularity(thread, &movePicker, ttValue, depth, beta, seeMargin)
                   : inCheck || (isQuiet && PvNode && cmhist > HistexLimit && fmhist > HistexLimit);
 
         newDepth = depth + (extension && !RootNode);
@@ -789,10 +789,10 @@ int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
     return board->turn != colour;
 }
 
-int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta) {
+int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta, int seeMargin[2]) {
 
     uint16_t move;
-    int skipQuiets = 0, quiets = 0, tacticals = 0;
+    int isQuiet, skipQuiets = 0, quiets = 0, tacticals = 0;
     int value = -MATE, rBeta = MAX(ttValue - depth, -MATE);
 
     MovePicker movePicker;
@@ -808,6 +808,13 @@ int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta
 
         assert(move != mp->tableMove); // Skip the table move
 
+        isQuiet = !moveIsTactical(board, move);
+
+        if (    depth <= SEEPruningDepth
+            &&  movePicker.stage > STAGE_GOOD_NOISY
+            && !staticExchangeEvaluation(board, move, seeMargin[isQuiet]))
+            continue;
+
         // Perform a reduced depth search on a null rbeta window
         if (!apply(thread, board, move)) continue;
         value = -search(thread, &lpv, -rBeta-1, -rBeta, depth / 2 - 1);
@@ -817,7 +824,7 @@ int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta
         if (value > rBeta) break;
 
         // Start skipping quiets after a few have been tried
-        moveIsTactical(board, move) ? tacticals++ : quiets++;
+        isQuiet ? quiets++ : tacticals++;
         skipQuiets = quiets >= SingularQuietLimit;
 
         // Start skipping bad captures after a few have been tried
