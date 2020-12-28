@@ -559,7 +559,15 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Revert the board state
         revert(thread, board, move);
 
-        // Step 18. Update search stats for the best move and its value. Update
+        // Step 18. Sibling prediction pruning for quiet moves
+        if (   isQuiet
+            && depth == 1
+            && value <= best
+            && (best > value + SiblingPredictionMargin
+            || alpha > value + SiblingPredictionMargin))
+            skipQuiets = true;
+
+        // Step 19. Update search stats for the best move and its value. Update
         // our lower bound (alpha) if exceeded, and also update the PV in that case
         if (value > best) {
 
@@ -583,14 +591,14 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Prefetch TT for store
     prefetchTTEntry(board->hash);
 
-    // Step 19. Stalemate and Checkmate detection. If no moves were found to
+    // Step 20. Stalemate and Checkmate detection. If no moves were found to
     // be legal (search makes sure to play at least one legal move, if any),
     // then we are either mated or stalemated, which we can tell by the inCheck
     // flag. For mates, return a score based on the distance from root, so we
     // can differentiate between close mates and far away mates from the root
     if (played == 0) return inCheck ? -MATE + thread->height : 0;
 
-    // Step 20 (~760 elo). Update History counters on a fail high for a quiet move.
+    // Step 21 (~760 elo). Update History counters on a fail high for a quiet move.
     // We also update Capture History Heuristics, which augment or replace MVV-LVA.
 
     if (best >= beta && !moveIsTactical(board, bestMove))
@@ -599,7 +607,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     if (best >= beta)
         updateCaptureHistories(thread, bestMove, capturesTried, capturesPlayed, depth);
 
-    // Step 21. Store results of search into the Transposition Table. We do
+    // Step 22. Store results of search into the Transposition Table. We do
     // not overwrite the Root entry from the first line of play we examined
     if (!RootNode || !thread->multiPV) {
         ttBound = best >= beta    ? BOUND_LOWER
