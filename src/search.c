@@ -549,10 +549,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
         // Step 18. Sibling prediction pruning for quiet moves
         if (   isQuiet
-            && depth == 1
+            && depth <= 2
             && value <= best
-            && (best > value + SiblingPredictionMargin
-            || alpha > value + SiblingPredictionMargin))
+            && value + SiblingPredictionMargin < alpha)
             skipQuiets = true;
 
         // Step 19. Update search stats for the best move and its value. Update
