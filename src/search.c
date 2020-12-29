@@ -198,7 +198,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int movesSeen = 0, quietsPlayed = 0, capturesPlayed = 0, played = 0;
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
-    int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
+    int inCheck, isQuiet, improving, extension, singular, givesCheck, skipQuiets = 0;
     int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
@@ -396,6 +396,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Track Moves Seen for Late Move Pruning
         movesSeen += 1;
         isQuiet = !moveIsTactical(board, move);
+        givesCheck = moveGivesCheck(board, move);
 
         // All moves have one or more History scores
         hist = !isQuiet ? getCaptureHistory(thread, move)
@@ -431,14 +432,14 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             // Step 12D (~8 elo). Counter Move Pruning. Moves with poor counter
             // move history are pruned at near leaf nodes of the search.
-            if (   movePicker.stage > STAGE_COUNTER_MOVE
+            if (   !givesCheck && movePicker.stage > STAGE_COUNTER_MOVE
                 && cmhist < CounterMoveHistoryLimit[improving]
                 && depth - R <= CounterMovePruningDepth[improving])
                 continue;
 
             // Step 12E (~1.5 elo). Follow Up Move Pruning. Moves with poor
             // follow up move history are pruned at near leaf nodes of the search.
-            if (   movePicker.stage > STAGE_COUNTER_MOVE
+            if (   !givesCheck && movePicker.stage > STAGE_COUNTER_MOVE
                 && fmhist < FollowUpMoveHistoryLimit[improving]
                 && depth - R <= FollowUpMovePruningDepth[improving])
                 continue;
@@ -450,7 +451,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         if (    best > -MATE_IN_MAX
             &&  depth <= SEEPruningDepth
             &&  movePicker.stage > STAGE_GOOD_NOISY
-            && !staticExchangeEvaluation(board, move, seeMargin[isQuiet]))
+            && !staticExchangeEvaluation(board, move, seeMargin[isQuiet] * (1 + givesCheck)))
             continue;
 
         // Apply move, skip if move is illegal
