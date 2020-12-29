@@ -552,6 +552,27 @@ int moveWasLegal(Board *board) {
     return !squareIsAttacked(board, !board->turn, sq);
 }
 
+int moveGivesCheck(Board *board, uint16_t move) {
+
+    const int to      = MoveTo(move);
+    const int from    = MoveFrom(move);
+    const int piece   = pieceType(board->squares[from]);
+    const int kingsq  = getlsb(board->colours[!board->turn] & board->pieces[KING]);
+    uint64_t occupied = board->colours[WHITE] | board->colours[BLACK];
+
+    // Direct attacks
+    if (piece == PAWN && testBit(pawnAttacks(!board->turn, kingsq), to)) return true;
+    if (piece == KNIGHT && testBit(knightAttacks(kingsq), to)) return true;
+    if ((piece == BISHOP || piece == QUEEN) && testBit(bishopAttacks(kingsq, occupied), to)) return true;
+    if ((piece == ROOK || piece == QUEEN) && testBit(rookAttacks(kingsq, occupied), to)) return true;
+
+    // TODO Discovered attacks
+    // TODO Promotions
+    // TODO Castling
+
+    return false;
+}
+
 int moveIsPseudoLegal(Board *board, uint16_t move) {
 
     int from   = MoveFrom(move);

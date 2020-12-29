@@ -61,6 +61,7 @@ int moveEstimatedValue(Board *board, uint16_t move);
 int moveBestCaseValue(Board *board);
 int moveIsPseudoLegal(Board *board, uint16_t move);
 int moveWasLegal(Board *board);
+int moveGivesCheck(Board *board, uint16_t move);
 void moveToString(uint16_t move, char *str, int chess960);
 
 #define MoveFrom(move)         (((move) >> 0) & 63)
