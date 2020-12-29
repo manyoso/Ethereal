@@ -451,7 +451,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         if (    best > -MATE_IN_MAX
             &&  depth <= SEEPruningDepth
             &&  movePicker.stage > STAGE_GOOD_NOISY
-            && !staticExchangeEvaluation(board, move, seeMargin[isQuiet] * (1 + givesCheck)))
+            && !staticExchangeEvaluation(board, move, seeMargin[isQuiet] * (givesCheck ? depth : 1)))
             continue;
 
         // Apply move, skip if move is illegal
