@@ -535,6 +535,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
 
+            // Reduce lmr for noisy moves if the Transposition Table move is also tactical
+            R -= ttIsTactical;
+
             // Don't extend or drop into QS
             R = MIN(depth - 1, MAX(R, 1));
         }
