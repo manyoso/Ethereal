@@ -510,6 +510,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // Increase for King moves that evade checks
             R += inCheck && pieceType(board->squares[MoveTo(move)]) == KING;
 
+            // Increase if ttMove is singular and this is not it
+            R += singular == 1 && move != ttMove;
+
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
 
