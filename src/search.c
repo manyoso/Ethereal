@@ -384,6 +384,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         }
     }
 
+    int poisonedFrom[SQUARE_NB] = { 0 };
+
     // Step 10. Initialize the Move Picker and being searching through each
     // move one at a time, until we run out or a move generates a cutoff
     initMovePicker(&movePicker, thread, ttMove);
@@ -527,6 +529,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // Initialize R based on Capture History
             R = MIN(3, 3 - (hist + 4000) / 2000);
 
+            // Increase for poisoned from
+            R += poisonedFrom[MoveFrom(move)];
+
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
 
@@ -568,6 +573,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             if (value > alpha) {
                 alpha = value;
+                if (!isQuiet) poisonedFrom[MoveFrom(move)] += 1;
 
                 // Copy our child's PV and prepend this move to it
                 pv->length = 1 + lpv.length;
