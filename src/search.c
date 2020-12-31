@@ -360,7 +360,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     if (   !PvNode
         &&  depth >= ProbCutDepth
         &&  abs(beta) < MATE_IN_MAX
-        && (!ttHit || !(ttBound & BOUND_UPPER) || ttValue >= beta)
+        && (!ttHit || ttValue >= beta)
         && (eval >= beta || eval + moveBestCaseValue(board) >= beta + ProbCutMargin)) {
 
         // Try tactical moves which maintain rBeta
