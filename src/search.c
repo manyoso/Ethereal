@@ -354,10 +354,13 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
     // Step 9 (~9 elo). Probcut Pruning. If we have a good capture that causes a cutoff
     // with an adjusted beta value at a reduced search depth, we expect that it will
-    // cause a similar cutoff at this search depth, with a normal beta value
+    // cause a similar cutoff at this search depth, with a normal beta value. We avoid
+    // Probcut when we have information from the Transposition Table which suggests it
+    // will fail
     if (   !PvNode
         &&  depth >= ProbCutDepth
         &&  abs(beta) < MATE_IN_MAX
+        && (!ttHit || !(ttBound & BOUND_UPPER) || ttValue >= beta)
         && (eval >= beta || eval + moveBestCaseValue(board) >= beta + ProbCutMargin)) {
 
         // Try tactical moves which maintain rBeta
