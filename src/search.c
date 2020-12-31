@@ -509,6 +509,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // Increase for King moves that evade checks
             R += inCheck && pieceType(board->squares[MoveTo(move)]) == KING;
 
+            // Increase for poisoned from
+            R += poisonedFrom[MoveFrom(move)] > 2;
+
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
 
@@ -530,7 +533,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             R = MIN(3, 3 - (hist + 4000) / 2000);
 
             // Increase for poisoned from
-            R += poisonedFrom[MoveFrom(move)];
+            R += poisonedFrom[MoveFrom(move)] > 2;
 
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
@@ -573,7 +576,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             if (value > alpha) {
                 alpha = value;
-                if (!isQuiet) poisonedFrom[MoveFrom(move)] += 1;
+                poisonedFrom[MoveFrom(move)] += 1;
 
                 // Copy our child's PV and prepend this move to it
                 pv->length = 1 + lpv.length;
