@@ -527,7 +527,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             R = MIN(3, 3 - (hist + 4000) / 2000);
 
             // Reduce for positive see balance
-            R -= seeBalance >= beta;
+            R -= movePicker.stage == STAGE_GOOD_NOISY && seeBalance >= beta;
 
             // Reduce for moves that give check
             R -= !!board->kingAttackers;

@@ -85,9 +85,6 @@ void initNoisyMovePicker(MovePicker *mp, Thread *thread, int threshold) {
 uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets, int *seeBalance) {
 
     int best; uint16_t bestMove;
-    if (seeBalance)
-        *seeBalance = -MATE_IN_MAX;
-
     switch (mp->stage) {
 
         case STAGE_TABLE:
@@ -125,7 +122,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets, int *seeBa
                     // as failed with the value less than zero, and then repeat the selection process
                     int sb;
                     if ((sb = staticExchangeEvaluation(board, mp->moves[best], mp->threshold)) < 0) {
-                        mp->values[best] = sb;
+                        mp->values[best] = -1;
                         return selectNextMove(mp, board, skipQuiets, seeBalance);
                     }
 
@@ -232,10 +229,6 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets, int *seeBa
 
             // Check to see if there are still more noisy moves
             if (mp->noisySize && mp->type != NOISY_PICKER) {
-
-                // Get the see balance from value before we pop
-                if (seeBalance)
-                    *seeBalance = mp->values[0];
 
                 // Reduce effective move list size
                 bestMove = popMove(&mp->noisySize, mp->moves, mp->values, 0);
