@@ -306,8 +306,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     futilityMargin = FutilityMargin * depth;
 
     // Static Exchange Evaluation Pruning Margins
-    seeMargin[0] = MIN(SEENoisyMargin * depth * depth, beta);
-    seeMargin[1] = MIN(SEEQuietMargin * depth, beta);
+    seeMargin[0] = MIN(SEENoisyMargin * depth * depth, alpha - eval);
+    seeMargin[1] = MIN(SEEQuietMargin * depth, alpha - eval);
 
     // Improving if our static eval increased in the last move
     improving = thread->height >= 2 && eval > thread->evalStack[thread->height-2];
