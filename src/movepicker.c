@@ -82,9 +82,11 @@ void initNoisyMovePicker(MovePicker *mp, Thread *thread, int threshold) {
     mp->type = NOISY_PICKER;
 }
 
-uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
+uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets, int *seeBalance) {
 
     int best; uint16_t bestMove;
+    if (seeBalance)
+        *seeBalance = -MATE_IN_MAX;
 
     switch (mp->stage) {
 
@@ -120,10 +122,11 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
                 if (mp->values[best] >= 0) {
 
                     // Skip moves which fail to beat our SEE margin. We flag those moves
-                    // as failed with the value (-1), and then repeat the selection process
-                    if (staticExchangeEvaluation(board, mp->moves[best], mp->threshold) < 0) {
-                        mp->values[best] = -1;
-                        return selectNextMove(mp, board, skipQuiets);
+                    // as failed with the value less than zero, and then repeat the selection process
+                    int sb;
+                    if ((sb = staticExchangeEvaluation(board, mp->moves[best], mp->threshold)) < 0) {
+                        mp->values[best] = sb;
+                        return selectNextMove(mp, board, skipQuiets, seeBalance);
                     }
 
                     // Reduce effective move list size
@@ -131,13 +134,15 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
                     // Don't play the table move twice
                     if (bestMove == mp->tableMove)
-                        return selectNextMove(mp, board, skipQuiets);
+                        return selectNextMove(mp, board, skipQuiets, seeBalance);
 
                     // Don't play the refutation moves twice
                     if (bestMove == mp->killer1) mp->killer1 = NONE_MOVE;
                     if (bestMove == mp->killer2) mp->killer2 = NONE_MOVE;
                     if (bestMove == mp->counter) mp->counter = NONE_MOVE;
 
+                    if (seeBalance)
+                        *seeBalance = sb;
                     return bestMove;
                 }
             }
@@ -145,7 +150,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
             // Jump to bad noisy moves when skipping quiets
             if (skipQuiets) {
                 mp->stage = STAGE_BAD_NOISY;
-                return selectNextMove(mp, board, skipQuiets);
+                return selectNextMove(mp, board, skipQuiets, seeBalance);
             }
 
             mp->stage = STAGE_KILLER_1;
@@ -213,7 +218,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
                     || bestMove == mp->killer1
                     || bestMove == mp->killer2
                     || bestMove == mp->counter)
-                    return selectNextMove(mp, board, skipQuiets);
+                    return selectNextMove(mp, board, skipQuiets, seeBalance);
 
                 return bestMove;
             }
@@ -228,6 +233,10 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
             // Check to see if there are still more noisy moves
             if (mp->noisySize && mp->type != NOISY_PICKER) {
 
+                // Get the see balance from value before we pop
+                if (seeBalance)
+                    *seeBalance = mp->values[0];
+
                 // Reduce effective move list size
                 bestMove = popMove(&mp->noisySize, mp->moves, mp->values, 0);
 
@@ -236,7 +245,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
                     || bestMove == mp->killer1
                     || bestMove == mp->killer2
                     || bestMove == mp->counter)
-                    return selectNextMove(mp, board, skipQuiets);
+                    return selectNextMove(mp, board, skipQuiets, seeBalance);
 
                 return bestMove;
             }

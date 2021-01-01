@@ -363,7 +363,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Try tactical moves which maintain rBeta
         rBeta = MIN(beta + ProbCutMargin, MATE - MAX_PLY - 1);
         initNoisyMovePicker(&movePicker, thread, rBeta - eval);
-        while ((move = selectNextMove(&movePicker, board, 1)) != NONE_MOVE) {
+        while ((move = selectNextMove(&movePicker, board, 1, 0)) != NONE_MOVE) {
 
             // Apply move, skip if move is illegal
             if (!apply(thread, board, move)) continue;
@@ -387,7 +387,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Step 10. Initialize the Move Picker and being searching through each
     // move one at a time, until we run out or a move generates a cutoff
     initMovePicker(&movePicker, thread, ttMove);
-    while ((move = selectNextMove(&movePicker, board, skipQuiets)) != NONE_MOVE) {
+    int seeBalance = -MATE_IN_MAX;
+    while ((move = selectNextMove(&movePicker, board, skipQuiets, &seeBalance)) != NONE_MOVE) {
 
         // MultiPV and searchmoves may limit our search options
         if (RootNode && moveExaminedByMultiPV(thread, move)) continue;
@@ -524,6 +525,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             // Initialize R based on Capture History
             R = MIN(3, 3 - (hist + 4000) / 2000);
+
+            // Reduce for positive see balance
+            R -= seeBalance >= beta;
 
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
@@ -675,7 +679,7 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
     // and return those which are winning via SEE, and also strong enough
     // to beat the margin computed in the Delta Pruning step found above
     initNoisyMovePicker(&movePicker, thread, MAX(1, alpha - eval - QSSeeMargin));
-    while ((move = selectNextMove(&movePicker, board, 1)) != NONE_MOVE) {
+    while ((move = selectNextMove(&movePicker, board, 1, 0)) != NONE_MOVE) {
 
         // Search the next ply if the move is legal
         if (!apply(thread, board, move)) continue;
@@ -818,7 +822,7 @@ int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta
 
     // Iterate over each move, except for the table move
     initSingularMovePicker(&movePicker, thread, mp->tableMove);
-    while ((move = selectNextMove(&movePicker, board, skipQuiets)) != NONE_MOVE) {
+    while ((move = selectNextMove(&movePicker, board, skipQuiets, 0)) != NONE_MOVE) {
 
         assert(move != mp->tableMove); // Skip the table move
 
