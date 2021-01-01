@@ -481,7 +481,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // with very strong continuation histories, so long as they are along the PV line
 
         extension = singular ? singularity(thread, &movePicker, ttValue, depth, beta)
-                  : inCheck || (isQuiet && PvNode && cmhist > HistexLimit && fmhist > HistexLimit);
+                  : (inCheck && PvNode) || (isQuiet && PvNode && cmhist > HistexLimit && fmhist > HistexLimit);
 
         newDepth = depth + (extension && !RootNode);
 
