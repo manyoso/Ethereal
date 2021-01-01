@@ -302,6 +302,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     eval = thread->evalStack[thread->height]
          = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
 
+    if (PvNode && !ttHit && thread->nthreads > 1)
+        storeTTEntry(board->hash, bestMove, valueToTT(best, thread->height), eval, depth, BOUND_LOWER);
+
     // Futility Pruning Margin
     futilityMargin = FutilityMargin * depth;
 
