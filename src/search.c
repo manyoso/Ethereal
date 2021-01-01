@@ -208,7 +208,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Step 1. Quiescence Search. Perform a search using mostly tactical
     // moves to reach a more stable position for use as a static evaluation
     if (depth <= 0 && !board->kingAttackers)
-        return qsearch(thread, pv, alpha, beta);
+        return qsearch(thread, pv, alpha, beta, depth);
 
     // Prefetch TT as early as reasonable
     prefetchTTEntry(board->hash);
@@ -370,7 +370,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             // For high depths, verify the move first with a depth one search
             if (depth >= 2 * ProbCutDepth)
-                value = -qsearch(thread, &lpv, -rBeta, -rBeta+1);
+                value = -qsearch(thread, &lpv, -rBeta, -rBeta+1, 0);
 
             // For low depths, or after the above, verify with a reduced search
             if (depth < 2 * ProbCutDepth || value >= rBeta)
@@ -608,7 +608,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     return best;
 }
 
-int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
+int qsearch(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
     Board *const board = &thread->board;
 
@@ -674,12 +674,17 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
     // Step 7. Move Generation and Looping. Generate all tactical moves
     // and return those which are winning via SEE, and also strong enough
     // to beat the margin computed in the Delta Pruning step found above
+    const int previousMoveTo = MoveTo(thread->moveStack[thread->height-1]);
     initNoisyMovePicker(&movePicker, thread, MAX(1, alpha - eval - QSSeeMargin));
     while ((move = selectNextMove(&movePicker, board, 1)) != NONE_MOVE) {
 
+        // Only look at recaptures after -5 depth
+        if (depth < -5 && MoveTo(move) != previousMoveTo)
+            continue;
+
         // Search the next ply if the move is legal
         if (!apply(thread, board, move)) continue;
-        value = -qsearch(thread, &lpv, -beta, -alpha);
+        value = -qsearch(thread, &lpv, -beta, -alpha, depth-1);
         revert(thread, board, move);
 
         // Improved current value
