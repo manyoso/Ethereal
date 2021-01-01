@@ -313,8 +313,10 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     improving = thread->height >= 2 && eval > thread->evalStack[thread->height-2];
 
     // Reset Killer moves for our children
-    thread->killers[thread->height+1][0] = NONE_MOVE;
-    thread->killers[thread->height+1][1] = NONE_MOVE;
+    thread->killers[thread->height+1][0].move   = NONE_MOVE;
+    thread->killers[thread->height+1][1].move   = NONE_MOVE;
+    thread->killers[thread->height+1][0].value  = -MATE_IN_MAX;
+    thread->killers[thread->height+1][1].value  = -MATE_IN_MAX;
 
     // ------------------------------------------------------------------------
     // All elo estimates as of Ethereal 11.80, @ 12s+0.12 @ 1.275mnps
@@ -594,7 +596,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // We also update Capture History Heuristics, which augment or replace MVV-LVA.
 
     if (best >= beta && !moveIsTactical(board, bestMove))
-        updateHistoryHeuristics(thread, quietsTried, quietsPlayed, depth);
+        updateHistoryHeuristics(thread, bestMove, best, quietsTried, quietsPlayed, depth);
 
     if (best >= beta)
         updateCaptureHistories(thread, bestMove, capturesTried, capturesPlayed, depth);
@@ -839,7 +841,7 @@ int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta
     // MultiCut. We signal the Move Picker to terminate the search
     if (value > rBeta && rBeta >= beta) {
         if (!moveIsTactical(board, move))
-            updateKillerMoves(thread, move);
+            updateKillerMoves(thread, move, value);
         mp->stage = STAGE_DONE;
     }
 

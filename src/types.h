@@ -76,6 +76,11 @@ static inline int makePiece(int type, int colour) {
 
 // Forward definition of all structs
 
+struct RefutationMove {
+    uint16_t move;
+    int value;
+};
+
 typedef struct Magic Magic;
 typedef struct Board Board;
 typedef struct Undo Undo;
@@ -91,10 +96,11 @@ typedef struct PKEntry PKEntry;
 typedef struct TTable TTable;
 typedef struct Limits Limits;
 typedef struct UCIGoStruct UCIGoStruct;
+typedef struct RefutationMove RefutationMove;
 
 // Renamings, currently for move ordering
 
-typedef uint16_t KillerTable[MAX_PLY+1][2];
+typedef RefutationMove KillerTable[MAX_PLY+1][2];
 typedef uint16_t CounterMoveTable[COLOUR_NB][PIECE_NB][SQUARE_NB];
 
 typedef int16_t HistoryTable[COLOUR_NB][SQUARE_NB][SQUARE_NB];

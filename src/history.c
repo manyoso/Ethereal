@@ -25,10 +25,10 @@
 #include "thread.h"
 #include "types.h"
 
-void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int depth) {
+void updateHistoryHeuristics(Thread *thread, uint16_t bestMove, int best,
+                            uint16_t *moves, int length, int depth) {
 
     int entry, bonus, colour = thread->board.turn;
-    uint16_t bestMove = moves[length-1];
 
     // Extract information from last move
     uint16_t counter = thread->moveStack[thread->height-1];
@@ -41,9 +41,11 @@ void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int de
     int fmTo = MoveTo(follow);
 
     // Update Killer Moves (Avoid duplicates)
-    if (thread->killers[thread->height][0] != bestMove) {
+    if (   thread->killers[thread->height][0].move != bestMove
+        && thread->killers[thread->height][0].value < best) {
         thread->killers[thread->height][1] = thread->killers[thread->height][0];
-        thread->killers[thread->height][0] = bestMove;
+        thread->killers[thread->height][0].move = bestMove;
+        thread->killers[thread->height][0].value = best;
     }
 
     // Update Counter Moves (BestMove refutes the previous move)
@@ -88,13 +90,15 @@ void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int de
     }
 }
 
-void updateKillerMoves(Thread *thread, uint16_t move) {
+void updateKillerMoves(Thread *thread, uint16_t bestMove, int best) {
 
-    // Avoid saving the same Killer Move twice
-    if (thread->killers[thread->height][0] == move) return;
-
-    thread->killers[thread->height][1] = thread->killers[thread->height][0];
-    thread->killers[thread->height][0] = move;
+    // Update Killer Moves (Avoid duplicates)
+    if (   thread->killers[thread->height][0].move != bestMove
+        && thread->killers[thread->height][0].value < best) {
+        thread->killers[thread->height][1] = thread->killers[thread->height][0];
+        thread->killers[thread->height][0].move = bestMove;
+        thread->killers[thread->height][0].value = best;
+    }
 }
 
 
@@ -237,8 +241,8 @@ void getRefutationMoves(Thread *thread, uint16_t *killer1, uint16_t *killer2, ui
     int cmTo = MoveTo(previous);
 
     // Set Killer Moves by height
-    *killer1 = thread->killers[thread->height][0];
-    *killer2 = thread->killers[thread->height][1];
+    *killer1 = thread->killers[thread->height][0].move;
+    *killer2 = thread->killers[thread->height][1].move;
 
     // Set Counter Move if one exists
     if (previous == NONE_MOVE || previous == NULL_MOVE) *counter = NONE_MOVE;
