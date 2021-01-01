@@ -38,10 +38,10 @@ void initSearch();
 void getBestMove(Thread *threads, Board *board, Limits *limits, uint16_t *best, uint16_t *ponder);
 void* iterativeDeepening(void *vthread);
 void aspirationWindow(Thread *thread);
-int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth);
+int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth, int CutNode);
 int qsearch(Thread *thread, PVariation *pv, int alpha, int beta);
 int staticExchangeEvaluation(Board *board, uint16_t move, int threshold);
-int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta);
+int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta, int isCutNode);
 
 static const int WindowDepth   = 5;
 static const int WindowSize    = 10;
