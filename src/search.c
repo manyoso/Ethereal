@@ -199,7 +199,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
-    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
+    int eval, value = -MATE, best = -MATE, futilityMargin, previousTo, seeMargin[2];
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
     MovePicker movePicker;
@@ -311,6 +311,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
     // Improving if our static eval increased in the last move
     improving = thread->height >= 2 && eval > thread->evalStack[thread->height-2];
+
+    // Record the previous to square made by the same side
+    previousTo = MoveTo(thread->moveStack[thread->height-2]);
 
     // Reset Killer moves for our children
     thread->killers[thread->height+1][0] = NONE_MOVE;
@@ -506,6 +509,10 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             // Increase for King moves that evade checks
             R += inCheck && pieceType(board->squares[MoveTo(move)]) == KING;
+
+            // Increase if we're improving and in the opening phase and
+            // this move is the same piece as our prior move
+            R += improving && board->numMoves < 15 && previousTo == MoveFrom(move);
 
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
