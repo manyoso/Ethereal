@@ -1277,6 +1277,10 @@ int evaluateScaleFactor(Board *board, int eval) {
     const uint64_t weak    = ScoreEG(eval) < 0 ? white : black;
     const uint64_t strong  = ScoreEG(eval) < 0 ? black : white;
 
+    const int pawnsOnBothFlanks = (pawns & LEFT_FLANK )
+                               && (pawns & RIGHT_FLANK);
+
+    int scaleFactor = SCALE_NORMAL;
 
     // Check for opposite coloured bishops
     if (   onlyOne(white & bishops)
@@ -1287,35 +1291,38 @@ int evaluateScaleFactor(Board *board, int eval) {
         if ( !(rooks | queens)
             && onlyOne(white & knights)
             && onlyOne(black & knights))
-            return SCALE_OCB_ONE_KNIGHT;
+            scaleFactor = SCALE_OCB_ONE_KNIGHT;
 
         // Scale factor for OCB + rooks
-        if ( !(knights | queens)
+        else if ( !(knights | queens)
             && onlyOne(white & rooks)
             && onlyOne(black & rooks))
-            return SCALE_OCB_ONE_ROOK;
+            scaleFactor = SCALE_OCB_ONE_ROOK;
 
         // Scale factor for lone OCB
-        if (!(knights | rooks | queens))
-            return SCALE_OCB_BISHOPS_ONLY;
+        else if (!(knights | rooks | queens))
+            scaleFactor = SCALE_OCB_BISHOPS_ONLY;
     }
 
     // Lone Queens are weak against multiple pieces
-    if (onlyOne(queens) && several(pieces) && pieces == (weak & pieces))
-        return SCALE_LONE_QUEEN;
+    else if (onlyOne(queens) && several(pieces) && pieces == (weak & pieces))
+        scaleFactor = SCALE_LONE_QUEEN;
 
     // Lone Minor vs King + Pawns should never be won
-    if ((strong & minors) && popcount(strong) == 2)
-        return SCALE_DRAW;
+    else if ((strong & minors) && popcount(strong) == 2)
+        scaleFactor = SCALE_DRAW;
 
     // Scale up lone pieces with massive pawn advantages
-    if (   !queens
+    else if (   !queens
         && !several(pieces & white)
         && !several(pieces & black)
         &&  popcount(strong & pawns) - popcount(weak & pawns) > 2)
-        return SCALE_LARGE_PAWN_ADV;
+        scaleFactor = SCALE_LARGE_PAWN_ADV;
 
-    return SCALE_NORMAL;
+    // Apply a large malus to scale factor for non flanking pawns
+    scaleFactor -= 12 * !pawnsOnBothFlanks;
+
+    return scaleFactor;
 }
 
 void initEvalInfo(Thread *thread, Board *board, EvalInfo *ei) {
