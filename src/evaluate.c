@@ -1302,6 +1302,9 @@ int evaluateScaleFactor(Board *board, int eval) {
         // Scale factor for lone OCB
         else if (!(knights | rooks | queens))
             scaleFactor = SCALE_OCB_BISHOPS_ONLY;
+
+        // Apply a large malus to scale factor for non flanking pawns
+        scaleFactor -= 12 * !pawnsOnBothFlanks;
     }
 
     // Lone Queens are weak against multiple pieces
@@ -1318,9 +1321,6 @@ int evaluateScaleFactor(Board *board, int eval) {
         && !several(pieces & black)
         &&  popcount(strong & pawns) - popcount(weak & pawns) > 2)
         scaleFactor = SCALE_LARGE_PAWN_ADV;
-
-    // Apply a large malus to scale factor for non flanking pawns
-    scaleFactor -= 12 * !pawnsOnBothFlanks;
 
     return scaleFactor;
 }
