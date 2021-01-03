@@ -506,7 +506,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Step 17A (~249 elo). Quiet Late Move Reductions. Reduce the search depth
         // of Quiet moves after we've explored the main line. If a reduced search
         // manages to beat alpha, against our expectations, we perform a research
-        if (isQuiet && depth > 2 && played > 1) {
+        if (isQuiet && depth > 2 && played > (PvNode ? 2 : 1)) {
 
             /// Use the LMR Formula as a starting point
             R  = LMRTable[MIN(depth, 63)][MIN(played, 63)];
@@ -529,7 +529,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
         // Step 17B (~3 elo). Noisy Late Move Reductions. The same as Step 15A, but
         // only applied to Tactical moves with unusually poor Capture History scores
-        else if (!isQuiet && depth > 2 && played > 1) {
+        else if (!isQuiet && depth > 2 && played > (PvNode ? 2 : 1)) {
 
             // Initialize R based on Capture History
             R = MIN(3, 3 - (hist + 4000) / 2000);
