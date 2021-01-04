@@ -52,6 +52,7 @@ struct Thread {
     int *evalStack, _evalStack[STACK_SIZE];
     uint16_t *moveStack, _moveStack[STACK_SIZE];
     int *pieceStack, _pieceStack[STACK_SIZE];
+    int *quietStack, _quietStack[STACK_SIZE];
 
     Undo undoStack[STACK_SIZE];
 
