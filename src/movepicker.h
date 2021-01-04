@@ -24,7 +24,7 @@ enum { NORMAL_PICKER, NOISY_PICKER };
 
 enum {
     STAGE_TABLE,
-    STAGE_GENERATE_NOISY, STAGE_GOOD_NOISY,
+    STAGE_GENERATE_PROMOS, STAGE_GENERATE_NOISY, STAGE_GOOD_NOISY,
     STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER_MOVE,
     STAGE_GENERATE_QUIET, STAGE_QUIET,
     STAGE_BAD_NOISY,
@@ -33,7 +33,7 @@ enum {
 
 struct MovePicker {
     int split, noisySize, quietSize;
-    int stage, type, threshold;
+    int stage, type, threshold, generatedNoisy;
     int values[MAX_MOVES];
     uint16_t moves[MAX_MOVES];
     uint16_t tableMove, killer1, killer2, counter;

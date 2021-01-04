@@ -339,7 +339,8 @@ uint64_t perft(Board *board, int depth) {
     if (depth == 0) return 1ull;
 
     // Call genAllNoisyMoves() & genAllNoisyMoves()
-    size += genAllNoisyMoves(board, moves);
+    size += genAllPromoMoves(board, moves);
+    size += genAllNoisyMovesMinusPromos(board, moves + size);
     size += genAllQuietMoves(board, moves + size);
 
     // Recurse on all valid moves

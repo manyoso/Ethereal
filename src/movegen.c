@@ -97,7 +97,8 @@ int genAllLegalMoves(Board *board, uint16_t *moves) {
     uint16_t pseudoMoves[MAX_MOVES];
 
     // Call genAllNoisyMoves() & genAllNoisyMoves()
-    pseudo  = genAllNoisyMoves(board, pseudoMoves);
+    pseudo  = genAllPromoMoves(board, pseudoMoves);
+    pseudo += genAllNoisyMovesMinusPromos(board, pseudoMoves + pseudo);
     pseudo += genAllQuietMoves(board, pseudoMoves + pseudo);
 
     // Check each move for legality before copying
@@ -110,7 +111,7 @@ int genAllLegalMoves(Board *board, uint16_t *moves) {
     return size;
 }
 
-int genAllNoisyMoves(Board *board, uint16_t *moves) {
+int genAllPromoMoves(Board *board, uint16_t *moves) {
 
     const uint16_t *start = moves;
 
@@ -118,8 +119,38 @@ int genAllNoisyMoves(Board *board, uint16_t *moves) {
     const int Right   = board->turn == WHITE ? -9 : 9;
     const int Forward = board->turn == WHITE ? -8 : 8;
 
-    uint64_t destinations, pawnEnpass, pawnLeft, pawnRight;
     uint64_t pawnPromoForward, pawnPromoLeft, pawnPromoRight;
+
+    uint64_t us       = board->colours[board->turn];
+    uint64_t them     = board->colours[!board->turn];
+    uint64_t occupied = us | them;
+
+    uint64_t pawns   = us & (board->pieces[PAWN  ]);
+
+    if (several(board->kingAttackers))
+        return 0;
+
+    // Compute bitboards for each type of Pawn promo
+    pawnPromoForward = pawnAdvance(pawns, occupied, board->turn)  & PROMOTION_RANKS;
+    pawnPromoLeft    = pawnLeftAttacks(pawns, them, board->turn)  & PROMOTION_RANKS;
+    pawnPromoRight   = pawnRightAttacks(pawns, them, board->turn) & PROMOTION_RANKS;
+
+    // Generate moves for all the Pawn promos
+    moves = buildPawnPromotions(moves, pawnPromoForward, Forward);
+    moves = buildPawnPromotions(moves, pawnPromoLeft, Left);
+    moves = buildPawnPromotions(moves, pawnPromoRight, Right);
+
+    return moves - start;
+}
+
+int genAllNoisyMovesMinusPromos(Board *board, uint16_t *moves) {
+
+    const uint16_t *start = moves;
+
+    const int Left    = board->turn == WHITE ? -7 : 7;
+    const int Right   = board->turn == WHITE ? -9 : 9;
+
+    uint64_t destinations, pawnEnpass, pawnLeft, pawnRight;
 
     uint64_t us       = board->colours[board->turn];
     uint64_t them     = board->colours[!board->turn];
@@ -144,19 +175,13 @@ int genAllNoisyMoves(Board *board, uint16_t *moves) {
 
     // Compute bitboards for each type of Pawn movement
     pawnEnpass       = pawnEnpassCaptures(pawns, board->epSquare, board->turn);
-    pawnLeft         = pawnLeftAttacks(pawns, them, board->turn);
-    pawnRight        = pawnRightAttacks(pawns, them, board->turn);
-    pawnPromoForward = pawnAdvance(pawns, occupied, board->turn) & PROMOTION_RANKS;
-    pawnPromoLeft    = pawnLeft & PROMOTION_RANKS; pawnLeft &= ~PROMOTION_RANKS;
-    pawnPromoRight   = pawnRight & PROMOTION_RANKS; pawnRight &= ~PROMOTION_RANKS;
+    pawnLeft         = pawnLeftAttacks(pawns, them, board->turn); pawnLeft &= ~PROMOTION_RANKS;
+    pawnRight        = pawnRightAttacks(pawns, them, board->turn); pawnRight &= ~PROMOTION_RANKS;
 
     // Generate moves for all the Pawns, so long as they are noisy
     moves = buildEnpassMoves(moves, pawnEnpass, board->epSquare);
     moves = buildPawnMoves(moves, pawnLeft & destinations, Left);
     moves = buildPawnMoves(moves, pawnRight & destinations, Right);
-    moves = buildPawnPromotions(moves, pawnPromoForward, Forward);
-    moves = buildPawnPromotions(moves, pawnPromoLeft, Left);
-    moves = buildPawnPromotions(moves, pawnPromoRight, Right);
 
     // Generate moves for the remainder of the pieces, so long as they are noisy
     moves = buildJumperMoves(&knightAttacks, moves, knights, destinations);

@@ -55,6 +55,7 @@ void initMovePicker(MovePicker *mp, Thread *thread, uint16_t ttMove) {
     getRefutationMoves(thread, &mp->killer1, &mp->killer2, &mp->counter);
 
     // General housekeeping
+    mp->generatedNoisy = 0;
     mp->threshold = 0;
     mp->thread = thread;
     mp->type = NORMAL_PICKER;
@@ -64,19 +65,19 @@ void initSingularMovePicker(MovePicker *mp, Thread *thread, uint16_t ttMove) {
 
     // Simply skip over the TT move
     initMovePicker(mp, thread, ttMove);
-    mp->stage = STAGE_GENERATE_NOISY;
-
+    mp->stage = STAGE_GENERATE_PROMOS;
 }
 
 void initNoisyMovePicker(MovePicker *mp, Thread *thread, int threshold) {
 
     // Start with just the noisy moves
-    mp->stage = STAGE_GENERATE_NOISY;
+    mp->stage = STAGE_GENERATE_PROMOS;
 
     // Skip all of the special (refutation and table) moves
     mp->tableMove = mp->killer1 = mp->killer2 = mp->counter = NONE_MOVE;
 
     // General housekeeping
+    mp->generatedNoisy = 0;
     mp->threshold = threshold;
     mp->thread = thread;
     mp->type = NOISY_PICKER;
@@ -91,21 +92,33 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
         case STAGE_TABLE:
 
             // Play table move if it is pseudo legal
-            mp->stage = STAGE_GENERATE_NOISY;
+            mp->stage = STAGE_GENERATE_PROMOS;
             if (moveIsPseudoLegal(board, mp->tableMove))
                 return mp->tableMove;
 
             /* fallthrough */
 
+        case STAGE_GENERATE_PROMOS:
+
+            // Generate and evaluate promo moves. mp->split sets a break point
+            // to separate the noisy from the quiet moves, so that we can skip
+            // some of the noisy moves during noisy stages and return later
+            mp->noisySize  = genAllPromoMoves(board, mp->moves);
+            mp->split = mp->noisySize;
+            getCaptureHistories(mp->thread, mp->moves, mp->values, 0, mp->noisySize);
+            mp->stage = STAGE_GOOD_NOISY;
+            return selectNextMove(mp, board, skipQuiets);
+
         case STAGE_GENERATE_NOISY:
 
             // Generate and evaluate noisy moves. mp->split sets a break point
-            // to seperate the noisy from the quiet moves, so that we can skip
+            // to separate the noisy from the quiet moves, so that we can skip
             // some of the noisy moves during STAGE_GOOD_NOISY and return later
-            mp->noisySize = mp->split = genAllNoisyMoves(board, mp->moves);
+            mp->noisySize = genAllNoisyMovesMinusPromos(board, mp->moves);
+            mp->split = mp->noisySize;
             getCaptureHistories(mp->thread, mp->moves, mp->values, 0, mp->noisySize);
+            mp->generatedNoisy = 1;
             mp->stage = STAGE_GOOD_NOISY;
-
             /* fallthrough */
 
         case STAGE_GOOD_NOISY:
@@ -140,6 +153,12 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
                     return bestMove;
                 }
+            }
+
+            // Jump to generating the rest of good noisy moves
+            if (!mp->generatedNoisy) {
+                mp->stage = STAGE_GENERATE_NOISY;
+                return selectNextMove(mp, board, skipQuiets);
             }
 
             // Jump to bad noisy moves when skipping quiets
