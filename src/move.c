@@ -54,6 +54,7 @@ int apply(Thread *thread, Board *board, uint16_t move) {
     // NULL moves are only tried when legal
     if (move == NULL_MOVE) {
         thread->moveStack[thread->height] = NULL_MOVE;
+        thread->quietStack[thread->height] = 1;
         applyNullMove(board, &thread->undoStack[thread->height]);
     }
 
@@ -61,6 +62,7 @@ int apply(Thread *thread, Board *board, uint16_t move) {
 
         // Track some move information for history lookups
         thread->moveStack[thread->height] = move;
+        thread->quietStack[thread->height] = !moveIsTactical(board, move);
         thread->pieceStack[thread->height] = pieceType(board->squares[MoveFrom(move)]);
 
         // Apply the move and reject if illegal
@@ -79,6 +81,7 @@ void applyLegal(Thread *thread, Board *board, uint16_t move) {
 
     // Track some move information for history lookups
     thread->moveStack[thread->height] = move;
+    thread->quietStack[thread->height] = !moveIsTactical(board, move);
     thread->pieceStack[thread->height] = pieceType(board->squares[MoveFrom(move)]);
 
     // Assumed that this move is legal

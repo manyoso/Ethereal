@@ -127,6 +127,9 @@ void getCaptureHistories(Thread *thread, uint16_t *moves, int *scores, int start
 
     static const int MVVAugment[] = {0, 2400, 2400, 4800, 9600};
 
+    const int recaptureAugment = !thread->quietStack[thread->height-1] ? 2400 : 0;
+    const int recaptureSquare  =  MoveTo(thread->moveStack[thread->height-1]);
+
     for (int i = start; i < start + length; i++) {
 
         const int to = MoveTo(moves[i]);
@@ -144,6 +147,7 @@ void getCaptureHistories(Thread *thread, uint16_t *moves, int *scores, int start
         scores[i] = 64000 + thread->chistory[piece][to][captured];
         if (MovePromoPiece(moves[i]) == QUEEN) scores[i] += 64000;
         scores[i] += MVVAugment[captured];
+        scores[i] += recaptureAugment * (to == recaptureSquare);
 
         assert(scores[i] >= 0);
     }

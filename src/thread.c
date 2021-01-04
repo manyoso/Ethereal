@@ -41,6 +41,7 @@ Thread* createThreadPool(int nthreads) {
         threads[i].evalStack  = &(threads[i]._evalStack[STACK_OFFSET]);
         threads[i].moveStack  = &(threads[i]._moveStack[STACK_OFFSET]);
         threads[i].pieceStack = &(threads[i]._pieceStack[STACK_OFFSET]);
+        threads[i].quietStack = &(threads[i]._quietStack[STACK_OFFSET]);
 
         // Threads will know of each other
         threads[i].index = i;
