@@ -489,8 +489,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // extend for any position where our King is checked. We also selectivly extend moves
         // with very strong continuation histories, so long as they are along the PV line
 
-        extension = singular ? singularity(thread, &movePicker, ttValue, depth, beta)
-                  : inCheck || (isQuiet && PvNode && cmhist > HistexLimit && fmhist > HistexLimit);
+        extension = singular ? singularity(thread, &movePicker, ttValue, depth, beta) : inCheck
+               ||  (isQuiet && PvNode && cmhist > HistexLimit && fmhist > HistexLimit)
+               || (!isQuiet && PvNode && !!board->kingAttackers && hist > 2 * HistexLimit);
 
         newDepth = depth + (extension && !RootNode);
 
