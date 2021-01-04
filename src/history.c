@@ -142,8 +142,13 @@ void getCaptureHistories(Thread *thread, uint16_t *moves, int *scores, int start
         assert(PAWN <= captured && captured <= QUEEN);
 
         scores[i] = 64000 + thread->chistory[piece][to][captured];
-        if (MovePromoPiece(moves[i]) == QUEEN) scores[i] += 64000;
         scores[i] += MVVAugment[captured];
+        if (MoveType(moves[i]) == PROMOTION_MOVE) {
+            if (MovePromoPiece(moves[i]) == QUEEN)  scores[i] += 64000;
+            if (MovePromoPiece(moves[i]) == KNIGHT) scores[i]  = 2;
+            if (MovePromoPiece(moves[i]) == ROOK)   scores[i]  = 1;
+            if (MovePromoPiece(moves[i]) == BISHOP) scores[i]  = 0;
+        }
 
         assert(scores[i] >= 0);
     }
@@ -164,7 +169,7 @@ int getCaptureHistory(Thread *thread, uint16_t move) {
     assert(PAWN <= captured && captured <= QUEEN);
 
     return thread->chistory[piece][to][captured]
-         + 64000 * (MovePromoPiece(move) == QUEEN);
+         + 64000 * (MoveType(move) == PROMOTION_MOVE && MovePromoPiece(move) == QUEEN);
 }
 
 
