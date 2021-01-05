@@ -534,6 +534,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // Initialize R based on Capture History
             R = MIN(3, 3 - (hist + 4000) / 2000);
 
+            // Increase for under promotions
+            R += (MoveType(move) == PROMOTION_MOVE && MovePromoPiece(move) != QUEEN) * 2;
+
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
 
