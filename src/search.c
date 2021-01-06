@@ -335,7 +335,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     if (   !PvNode
         && !inCheck
         &&  depth <= AlphaPruningDepth
-        &&  eval + AlphaMargin <= alpha)
+        &&  eval + (2600 + (depth - 1) * 100) <= alpha)
         return eval;
 
     // Step 9 (~93 elo). Null Move Pruning. If our position is so good that giving
