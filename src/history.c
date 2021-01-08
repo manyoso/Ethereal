@@ -29,9 +29,19 @@ static void updateHistoryWithDecay(int16_t *current, int delta) {
     *current += HistoryMultiplier * delta - *current * abs(delta) / HistoryDivisor;
 }
 
-void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int depth) {
+static int minorHistoryDelta(int depth) {
+    // Cap update size to avoid saturation
+    return MIN(depth*depth-depth+1, HistoryMax);
+}
 
-    int bonus, colour = thread->board.turn;
+static int historyDelta(int depth) {
+    // Cap update size to avoid saturation
+    return MIN(depth*depth, HistoryMax);
+}
+
+void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int *scores, int length, int depth, int oldAlpha) {
+
+    int bonus, minorBonus, colour = thread->board.turn;
     uint16_t bestMove = moves[length-1];
 
     // Extract information from last move
@@ -58,13 +68,13 @@ void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int de
     // Depth 0 gives no bonus in any case
     if (length == 1 && depth <= 3) return;
 
-    // Cap update size to avoid saturation
-    bonus = MIN(depth*depth, HistoryMax);
+    bonus = historyDelta(depth);
+    minorBonus = minorHistoryDelta(depth);
 
     for (int i = 0; i < length; i++) {
 
         // Apply a malus until the final move
-        int delta = (moves[i] == bestMove) ? bonus : -bonus;
+        int delta = (moves[i] == bestMove) ? bonus : (scores[i] > oldAlpha ? -minorBonus : -bonus);
 
         // Extract information from this move
         int to = MoveTo(moves[i]);
@@ -94,15 +104,15 @@ void updateKillerMoves(Thread *thread, uint16_t move) {
 }
 
 
-void updateCaptureHistories(Thread *thread, uint16_t best, uint16_t *moves, int length, int depth) {
+void updateCaptureHistories(Thread *thread, uint16_t bestMove, uint16_t *moves, int length, int depth) {
 
-    const int bonus = MIN(depth * depth, HistoryMax);
+    const int bonus = historyDelta(depth);
 
     for (int i = 0; i < length; i++) {
 
         const int to = MoveTo(moves[i]);
         const int from = MoveFrom(moves[i]);
-        const int delta = moves[i] == best ? bonus : -bonus;
+        const int delta = moves[i] == bestMove ? bonus : -bonus;
 
         int piece = pieceType(thread->board.squares[from]);
         int captured = pieceType(thread->board.squares[to]);
