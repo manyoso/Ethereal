@@ -215,11 +215,11 @@ void getHistoryScores(Thread *thread, uint16_t *moves, int *scores, int start, i
 
         // Add Counter Move History if it exists
         if (counter != NONE_MOVE && counter != NULL_MOVE)
-            scores[i] += thread->continuation[0][cmPiece][cmTo][piece][to];
+            scores[i] += thread->continuation[0][cmPiece][cmTo][piece][to] * 2;
 
         // Add Followup Move History if it exists
         if (follow != NONE_MOVE && follow != NULL_MOVE)
-            scores[i] += thread->continuation[1][fmPiece][fmTo][piece][to];
+            scores[i] += thread->continuation[1][fmPiece][fmTo][piece][to] * 2;
     }
 }
 
