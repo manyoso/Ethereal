@@ -119,6 +119,12 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
                 // Values below zero are flagged as failing an SEE (bad noisy)
                 if (mp->values[best] >= 0) {
 
+                    // Don't play the table move twice
+                    if (mp->moves[best] == mp->tableMove) {
+                        popMove(&mp->noisySize, mp->moves, mp->values, best);
+                        return selectNextMove(mp, board, skipQuiets);
+                    }
+
                     // Skip moves which fail to beat our SEE margin. We flag those moves
                     // as failed with the value (-1), and then repeat the selection process
                     if (!staticExchangeEvaluation(board, mp->moves[best], mp->threshold)) {
@@ -128,10 +134,6 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
                     // Reduce effective move list size
                     bestMove = popMove(&mp->noisySize, mp->moves, mp->values, best);
-
-                    // Don't play the table move twice
-                    if (bestMove == mp->tableMove)
-                        return selectNextMove(mp, board, skipQuiets);
 
                     // Don't play the refutation moves twice
                     if (bestMove == mp->killer1) mp->killer1 = NONE_MOVE;
