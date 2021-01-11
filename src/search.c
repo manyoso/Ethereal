@@ -454,6 +454,11 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
                 continue;
         }
 
+        // Take a stab at capture history pruning
+        if (  !isQuiet && best > -MATE_IN_MAX
+            && movePicker.stage == STAGE_BAD_NOISY && hist < -4000 && depth <= 12)
+            continue;
+
         // Step 14 (~42 elo). Static Exchange Evaluation Pruning. Prune moves which fail
         // to beat a depth dependent SEE threshold. The use of movePicker.stage
         // is a speedup, which assumes that good noisy moves have a positive SEE
