@@ -542,7 +542,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             R -= !!board->kingAttackers;
 
             // Adjust based on history scores
-            R -= MAX(-3, MIN(3, (hist + 4000) / 2000));
+            R -= MIN(3, (hist + 4000) / 2000);
 
             // Don't extend or drop into QS
             R = MIN(depth - 1, MAX(R, 1));
