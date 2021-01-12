@@ -560,7 +560,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // If we've tried a reduced search depth and it failed to beat alpha, then
             // we'll record the move (piece, from) and reduce even more on subsquent
             // moves with same (piece, from)
-            if (value <= alpha && (!inCheck || piece != KING))
+            if (value <= oldAlpha && (!inCheck || piece != KING))
                 failedReductions[piece][from] += 1;
         }
 
