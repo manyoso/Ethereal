@@ -522,7 +522,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             R += inCheck && pieceType(board->squares[MoveTo(move)]) == KING;
 
             // Increase for failed reductions
-            R += failedReductions[piece][from];
+            R += failedReductions[piece][from] > 1;
 
             // Reduce for Killers and Counters
             R -= movePicker.stage < STAGE_QUIET;
@@ -561,7 +561,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // we'll record the move (piece, from) and reduce even more on subsquent
             // moves with same (piece, from)
             if (value <= alpha && (!inCheck || piece != KING))
-                failedReductions[piece][from] = 1;
+                failedReductions[piece][from] += 1;
         }
 
         // Step 18B. There are two situations in which we will search again on a null window,
