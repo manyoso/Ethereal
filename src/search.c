@@ -522,7 +522,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             R += inCheck && pieceType(board->squares[MoveTo(move)]) == KING;
 
             // Increase for failed reductions
-            R += failedReductions[piece][from] > 1;
+            R += failedReductions[piece][from] > 2;
 
             // Reduce for Killers and Counters
             R -= movePicker.stage < STAGE_QUIET;
