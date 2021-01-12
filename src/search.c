@@ -395,6 +395,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
     // Step 11. Initialize the Move Picker and being searching through each
     // move one at a time, until we run out or a move generates a cutoff
+    int failedReductions[PIECE_NB][SQUARE_NB] = {0};
     initMovePicker(&movePicker, thread, ttMove);
     while ((move = selectNextMove(&movePicker, board, skipQuiets)) != NONE_MOVE) {
 
@@ -463,6 +464,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             && !staticExchangeEvaluation(board, move, seeMargin[isQuiet]))
             continue;
 
+        const int from  = board->squares[MoveFrom(move)];
+        const int piece = pieceType(from);
+
         // Apply move, skip if move is illegal
         if (!apply(thread, board, move))
             continue;
@@ -517,6 +521,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // Increase for King moves that evade checks
             R += inCheck && pieceType(board->squares[MoveTo(move)]) == KING;
 
+            // Increase for failed reductions
+            R += failedReductions[piece][from];
+
             // Reduce for Killers and Counters
             R -= movePicker.stage < STAGE_QUIET;
 
@@ -547,7 +554,15 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Step 18A. If we triggered the LMR conditions (which we know by the value of R),
         // then we will perform a reduced search on the null alpha window, as we have no
         // expectation that this move will be worth looking into deeper
-        if (R != 1) value = -search(thread, &lpv, -alpha-1, -alpha, newDepth-R);
+        if (R != 1) {
+            value = -search(thread, &lpv, -alpha-1, -alpha, newDepth-R);
+
+            // If we've tried a reduced search depth and it failed to beat alpha, then
+            // we'll record the move (piece, from) and reduce even more on subsquent
+            // moves with same (piece, from)
+            if (value <= alpha && (!inCheck || piece != KING))
+                failedReductions[piece][from] = 1;
+        }
 
         // Step 18B. There are two situations in which we will search again on a null window,
         // but without a depth reduction R. First, if the LMR search happened, and failed
