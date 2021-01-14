@@ -601,17 +601,18 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // We also update Capture History Heuristics, which augment or replace MVV-LVA.
 
     if (best >= beta && !moveIsTactical(board, bestMove))
-        updateHistoryHeuristics(thread, quietsTried, quietsPlayed, depth);
+        updateHistoryHeuristics(thread, quietsTried, quietsPlayed, newDepth);
 
     if (best >= beta)
-        updateCaptureHistories(thread, bestMove, capturesTried, capturesPlayed, depth);
+        updateCaptureHistories(thread, bestMove, capturesTried, capturesPlayed, newDepth);
 
     // Step 22. Store results of search into the Transposition Table. We do
     // not overwrite the Root entry from the first line of play we examined
     if (!RootNode || !thread->multiPV) {
         ttBound = best >= beta    ? BOUND_LOWER
                 : best > oldAlpha ? BOUND_EXACT : BOUND_UPPER;
-        storeTTEntry(board->hash, bestMove, valueToTT(best, thread->height), eval, depth, ttBound);
+        storeTTEntry(board->hash, bestMove, valueToTT(best, thread->height), eval,
+                     best >= beta ? newDepth : depth, ttBound);
     }
 
     return best;
