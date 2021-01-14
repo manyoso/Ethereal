@@ -88,6 +88,8 @@ void newSearchThreadPool(Thread *threads, Board *board, Limits *limits, SearchIn
         threads[i].height    = 0;
         threads[i].nodes     = 0ull;
         threads[i].tbhits    = 0ull;
+        threads[i].failLMR   = 0ull;
+        threads[i].totalLMR  = 0ull;
 
         memcpy(&threads[i].board, board, sizeof(Board));
         threads[i].contempt = board->turn == WHITE ? contempt : -contempt;

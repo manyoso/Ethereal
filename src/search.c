@@ -523,6 +523,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // Adjust based on history scores
             R -= MAX(-2, MIN(2, hist / 5000));
 
+            // Reduce if LMR is below 50 percent
+            R -= thread->totalLMR && thread->failLMR / (float)thread->totalLMR < 0.50;
+
             // Don't extend or drop into QS
             R = MIN(depth - 1, MAX(R, 1));
         }
@@ -537,6 +540,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
 
+            // Reduce if LMR is below 50 percent
+            R -= thread->totalLMR && thread->failLMR / (float)thread->totalLMR < 0.50;
+
             // Don't extend or drop into QS
             R = MIN(depth - 1, MAX(R, 1));
         }
@@ -547,7 +553,12 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Step 18A. If we triggered the LMR conditions (which we know by the value of R),
         // then we will perform a reduced search on the null alpha window, as we have no
         // expectation that this move will be worth looking into deeper
-        if (R != 1) value = -search(thread, &lpv, -alpha-1, -alpha, newDepth-R);
+        if (R != 1) {
+            value = -search(thread, &lpv, -alpha-1, -alpha, newDepth-R);
+            if (value <= alpha)
+                ++thread->failLMR;
+            ++thread->totalLMR;
+        }
 
         // Step 18B. There are two situations in which we will search again on a null window,
         // but without a depth reduction R. First, if the LMR search happened, and failed

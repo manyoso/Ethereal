@@ -48,6 +48,7 @@ struct Thread {
     int contempt;
     int depth, seldepth, height;
     uint64_t nodes, tbhits;
+    uint64_t failLMR, totalLMR;
 
     int *evalStack, _evalStack[STACK_SIZE];
     uint16_t *moveStack, _moveStack[STACK_SIZE];
