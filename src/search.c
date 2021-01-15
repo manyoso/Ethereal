@@ -519,7 +519,10 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             R += inCheck && pieceType(board->squares[MoveTo(move)]) == KING;
 
             // Reduce for very positive static eval trend
-            R -= staticDiff - 2200 > 0;
+            R -= staticDiff - 2460 > 0;
+
+            // Increase for very negative static eval trend
+            R += staticDiff + 2460 < 0;
 
             // Reduce for Killers and Counters
             R -= movePicker.stage < STAGE_QUIET;
