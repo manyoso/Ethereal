@@ -156,7 +156,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
             // Play killer move if not yet played, and pseudo legal
             mp->stage = STAGE_KILLER_2;
-            if (   !skipQuiets
+            if (    mp->type == NORMAL_PICKER
                 &&  mp->killer1 != mp->tableMove
                 &&  moveIsPseudoLegal(board, mp->killer1))
                 return mp->killer1;
@@ -167,7 +167,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
             // Play killer move if not yet played, and pseudo legal
             mp->stage = STAGE_COUNTER_MOVE;
-            if (   !skipQuiets
+            if (    mp->type == NORMAL_PICKER
                 &&  mp->killer2 != mp->tableMove
                 &&  moveIsPseudoLegal(board, mp->killer2))
                 return mp->killer2;
@@ -178,7 +178,7 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
             // Play counter move if not yet played, and pseudo legal
             mp->stage = STAGE_GENERATE_QUIET;
-            if (   !skipQuiets
+            if (    mp->type == NORMAL_PICKER
                 &&  mp->counter != mp->tableMove
                 &&  mp->counter != mp->killer1
                 &&  mp->counter != mp->killer2
