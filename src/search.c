@@ -135,6 +135,8 @@ void* iterativeDeepening(void *vthread) {
             break;
     }
 
+    printStats(vthread);
+
     return NULL;
 }
 

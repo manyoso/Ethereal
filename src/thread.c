@@ -119,3 +119,23 @@ uint64_t tbhitsThreadPool(Thread *threads) {
 
     return tbhits;
 }
+
+void addStat(Thread *thread, float stat) {
+    thread->stats[thread->statsLength++] = stat;
+}
+
+void printStats(Thread *thread) {
+
+    float sum = 0.0, mean = 0.0, sd = 0.0, high = FLT_MIN, low = FLT_MAX;
+    for (int i = 0; i < thread->statsLength; ++i) {
+        sum += thread->stats[i];
+        high = MAX(high, thread->stats[i]);
+        low = MIN(low, thread->stats[i]);
+    }
+    mean = sum / thread->statsLength;
+    for (int i = 0; i < thread->statsLength; ++i)
+        sd += pow(thread->stats[i] - mean, 2);
+    sd = sqrt(sd / thread->statsLength);
+
+    printf("l=%d sd=%f h=%f l=%f m=%f\n", thread->statsLength, sd, high, low, mean);
+}

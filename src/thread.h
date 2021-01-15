@@ -21,6 +21,9 @@
 #include <setjmp.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <float.h>
+#include <math.h>
+#include <stdio.h>
 
 #include "board.h"
 #include "evalcache.h"
@@ -68,11 +71,15 @@ struct Thread {
     int index, nthreads;
     Thread *threads;
     jmp_buf jbuffer;
-};
 
+    float stats[90000000];
+    int statsLength;
+};
 
 Thread* createThreadPool(int nthreads);
 void resetThreadPool(Thread *threads);
 void newSearchThreadPool(Thread *threads, Board *board, Limits *limits, SearchInfo *info);
 uint64_t nodesSearchedThreadPool(Thread *threads);
 uint64_t tbhitsThreadPool(Thread *threads);
+void addStat(Thread *thread, float stat);
+void printStats(Thread *thread);
