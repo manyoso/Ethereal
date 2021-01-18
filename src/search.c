@@ -166,7 +166,7 @@ void aspirationWindow(Thread *thread) {
             thread->values[multiPV]      = value;
             thread->bestMoves[multiPV]   = pv->line[0];
             thread->ponderMoves[multiPV] = pv->length > 1 ? pv->line[1] : NONE_MOVE;
-            thread->rootScore = (0.1 * value) + (1.0 - 0.1) * thread->rootScore;
+            thread->rootScore = (0.5 * value) + (1.0 - 0.5) * thread->rootScore;
             return;
         }
 
