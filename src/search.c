@@ -414,14 +414,13 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // have seen many moves in this position already, and we don't expect
         // anything from this move, we can skip all the remaining quiets
         if (   best > -MATE_IN_MAX
-            && depth != 0
             && depth <= LateMovePruningDepth
             && movesSeen >= LateMovePruningCounts[improving][depth])
             skipQuiets = 1;
 
         // Step 13 (~175 elo). Quiet Move Pruning. Prune any quiet move that meets one
         // of the criteria below, only after proving a non mated line exists
-        if (isQuiet && depth != 0 && best > -MATE_IN_MAX) {
+        if (isQuiet && best > -MATE_IN_MAX) {
 
             // Base LMR value that we expect to use later
             R = LMRTable[MIN(depth, 63)][MIN(played, 63)];
