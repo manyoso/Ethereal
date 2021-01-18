@@ -421,7 +421,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
         // Step 13 (~175 elo). Quiet Move Pruning. Prune any quiet move that meets one
         // of the criteria below, only after proving a non mated line exists
-        if (isQuiet && best > -MATE_IN_MAX) {
+        if (isQuiet && depth != 0 && best > -MATE_IN_MAX) {
 
             // Base LMR value that we expect to use later
             R = LMRTable[MIN(depth, 63)][MIN(played, 63)];
@@ -459,6 +459,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // to beat a depth dependent SEE threshold. The use of movePicker.stage
         // is a speedup, which assumes that good noisy moves have a positive SEE
         if (    best > -MATE_IN_MAX
+            &&  depth != 0
             &&  depth <= SEEPruningDepth
             &&  movePicker.stage > STAGE_GOOD_NOISY
             && !staticExchangeEvaluation(board, move, seeMargin[isQuiet]))
