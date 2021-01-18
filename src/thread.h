@@ -44,6 +44,7 @@ struct Thread {
     int multiPV, values[MAX_MOVES];
     uint16_t bestMoves[MAX_MOVES];
     uint16_t ponderMoves[MAX_MOVES];
+    int rootScore;
 
     int contempt;
     int depth, seldepth, height;

@@ -149,8 +149,8 @@ void aspirationWindow(Thread *thread) {
 
     // After a few depths use a previous result to form a window
     if (thread->depth >= WindowDepth) {
-        alpha = MAX(-MATE, thread->values[0] - delta);
-        beta  = MIN( MATE, thread->values[0] + delta);
+        alpha = MAX(-MATE, thread->rootScore - delta);
+        beta  = MIN( MATE, thread->rootScore + delta);
     }
 
     while (1) {
@@ -166,6 +166,7 @@ void aspirationWindow(Thread *thread) {
             thread->values[multiPV]      = value;
             thread->bestMoves[multiPV]   = pv->line[0];
             thread->ponderMoves[multiPV] = pv->length > 1 ? pv->line[1] : NONE_MOVE;
+            thread->rootScore = (0.1 * value) + (1.0 - 0.1) * thread->rootScore;
             return;
         }
 
