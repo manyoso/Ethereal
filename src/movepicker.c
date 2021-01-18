@@ -119,9 +119,13 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
                 // Values below zero are flagged as failing an SEE (bad noisy)
                 if (mp->values[best] >= 0) {
 
+                    // Calculate the threshold from sorting values for normal picker
+                    const int th = mp->type == NORMAL_PICKER ? -0.07 * (mp->values[best] - 64000)
+                                 : mp->threshold;
+
                     // Skip moves which fail to beat our SEE margin. We flag those moves
                     // as failed with the value (-1), and then repeat the selection process
-                    if (!staticExchangeEvaluation(board, mp->moves[best], mp->threshold)) {
+                    if (!staticExchangeEvaluation(board, mp->moves[best], th)) {
                         mp->values[best] = -1;
                         return selectNextMove(mp, board, skipQuiets);
                     }
