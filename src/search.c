@@ -334,7 +334,6 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // bonus doesn't get us beyond alpha, then eval will hold below alpha
     if (   !PvNode
         && !inCheck
-        &&  depth <= AlphaPruningDepth
         &&  eval + AlphaMargin <= alpha)
         return eval;
 
