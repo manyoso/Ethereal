@@ -207,8 +207,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
     // Step 1. Quiescence Search. Perform a search using mostly tactical
     // moves to reach a more stable position for use as a static evaluation
-    if (depth <= 0 && !board->kingAttackers)
-        return qsearch(thread, pv, alpha, beta);
+    if (depth <= 0)
+        return qsearch(thread, pv, alpha, beta, depth);
 
     // Prefetch TT as early as reasonable
     prefetchTTEntry(board->hash);
@@ -379,7 +379,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             // For high depths, verify the move first with a depth one search
             if (depth >= 2 * ProbCutDepth)
-                value = -qsearch(thread, &lpv, -rBeta, -rBeta+1);
+                value = -qsearch(thread, &lpv, -rBeta, -rBeta+1, 0);
 
             // For low depths, or after the above, verify with a reduced search
             if (depth < 2 * ProbCutDepth || value >= rBeta)
@@ -617,10 +617,11 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     return best;
 }
 
-int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
+int qsearch(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
     Board *const board = &thread->board;
 
+    int inCheck;
     int eval, value, best;
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     uint16_t move, ttMove = NONE_MOVE;
@@ -667,6 +668,8 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
     eval = thread->evalStack[thread->height]
          = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
 
+    inCheck = !!board->kingAttackers;
+
     // Step 5. Eval Pruning. If a static evaluation of the board will
     // exceed beta, then we can stop the search here. Also, if the static
     // eval exceeds alpha, we can call our static eval the new alpha
@@ -684,11 +687,11 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
     // and return those which are winning via SEE, and also strong enough
     // to beat the margin computed in the Delta Pruning step found above
     initNoisyMovePicker(&movePicker, thread, MAX(1, alpha - eval - QSSeeMargin));
-    while ((move = selectNextMove(&movePicker, board, 1)) != NONE_MOVE) {
+    while ((move = selectNextMove(&movePicker, board, !inCheck)) != NONE_MOVE) {
 
         // Search the next ply if the move is legal
         if (!apply(thread, board, move)) continue;
-        value = -qsearch(thread, &lpv, -beta, -alpha);
+        value = -qsearch(thread, &lpv, -beta, -alpha, depth-1);
         revert(thread, board, move);
 
         // Improved current value
