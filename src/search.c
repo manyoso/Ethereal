@@ -518,7 +518,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             R += inCheck && pieceType(board->squares[MoveTo(move)]) == KING;
 
             // Reduce if we have a cached eval and it beats beta
-            R -= getCachedEvaluation(thread, board, &cachedEval) && -cachedEval >= beta;
+            R -= getCachedEvaluation(thread, board, &cachedEval) && -cachedEval - BetaMargin >= beta;
 
             // Reduce for Killers and Counters
             R -= movePicker.stage < STAGE_QUIET;
