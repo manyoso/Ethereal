@@ -323,11 +323,14 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Step 7 (~32 elo). Beta Pruning / Reverse Futility Pruning / Static
     // Null Move Pruning. If the eval is well above beta, defined by a depth
     // dependent margin, then we assume the eval will hold above beta
-    if (   !PvNode
-        && !inCheck
+    if (   !inCheck
         &&  depth <= BetaPruningDepth
-        &&  eval - BetaMargin * depth > beta)
-        return eval;
+        &&  eval - BetaMargin * depth > beta) {
+        if (!PvNode)
+            return eval;
+        else
+            depth += 1 + improving;
+    }
 
     // Step 8 (~3 elo). Alpha Pruning for main search loop. The idea is
     // that for low depths if eval is so bad that even a large static
