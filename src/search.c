@@ -329,7 +329,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         if (!PvNode)
             return eval;
         else
-            depth += 1 + improving;
+            depth += 1;
     }
 
     // Step 8 (~3 elo). Alpha Pruning for main search loop. The idea is
