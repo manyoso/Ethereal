@@ -416,8 +416,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         if (    best > -MATE_IN_MAX
             && ((depth <= LateMovePruningDepth
             &&  movesSeen >= LateMovePruningCounts[improving][depth])
-            ||  (depth <= LateMovePruningDepthQuiet && movePicker.total != -1
-            &&  movesSeen / movePicker.total * 100 > LateMovePruningCountsQuiet[improving][depth])))
+            ||  (depth <= LateMovePruningDepthQuiet &&  movePicker.total != -1 && !inCheck
+            &&  movesSeen / (float)movePicker.total * 100 > LateMovePruningCountsQuiet[improving][depth])))
             skipQuiets = 1;
 
         // Step 13 (~175 elo). Quiet Move Pruning. Prune any quiet move that meets one
