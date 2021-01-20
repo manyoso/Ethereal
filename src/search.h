@@ -77,6 +77,12 @@ static const int LateMovePruningCounts[2][9] = {
     {  0,  5,  7, 11, 17, 26, 36, 48, 63},
 };
 
+static const int LateMovePruningDepthQuiet = 8;
+static const int LateMovePruningCountsQuiet[2][9] = {
+    {  0, 14, 17, 23, 35, 47, 59, 72, 83},
+    {  0, 20, 26, 37, 53, 72, 87, 95, 97},
+};
+
 static const int SEEPruningDepth = 9;
 static const int SEEQuietMargin = -64;
 static const int SEENoisyMargin = -19;
