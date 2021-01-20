@@ -135,7 +135,7 @@ void getCaptureHistories(Thread *thread, uint16_t *moves, int *scores, int start
 
         scores[i] = 64000 + thread->chistory[piece][to][captured];
         if (MovePromoPiece(moves[i]) == QUEEN) scores[i] += 64000;
-        scores[i] += SEEPieceValues[captured] * 7;
+        if (captured != PAWN) scores[i] += SEEPieceValues[captured] * 7;
 
         assert(scores[i] >= 0);
     }
