@@ -48,6 +48,7 @@ int LMRTable[64][64];      // Late Move Reductions
 volatile int ABORT_SIGNAL; // Global ABORT flag for threads
 volatile int IS_PONDERING; // Global PONDER flag for threads
 volatile int ANALYSISMODE; // Whether to make some changes for Analysis
+double EPSILON = 0.9;
 
 void initSearch() {
 
@@ -301,6 +302,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Save a history of the static evaluations
     eval = thread->evalStack[thread->height]
          = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
+    eval = thread->height >= 2 ? (EPSILON * eval) + (1.0 - EPSILON) * thread->evalStack[thread->height-2] : eval;
 
     // Futility Pruning Margin
     futilityMargin = FutilityMargin * depth;
@@ -666,6 +668,7 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
     // Save a history of the static evaluations
     eval = thread->evalStack[thread->height]
          = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
+    eval = thread->height >= 2 ? (EPSILON * eval) + (1.0 - EPSILON) * thread->evalStack[thread->height-2] : eval;
 
     // Step 5. Eval Pruning. If a static evaluation of the board will
     // exceed beta, then we can stop the search here. Also, if the static
