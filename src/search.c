@@ -48,7 +48,7 @@ int LMRTable[64][64];      // Late Move Reductions
 volatile int ABORT_SIGNAL; // Global ABORT flag for threads
 volatile int IS_PONDERING; // Global PONDER flag for threads
 volatile int ANALYSISMODE; // Whether to make some changes for Analysis
-double EPSILON = 0.98;
+double EPSILON = 0.995;
 
 void initSearch() {
 
