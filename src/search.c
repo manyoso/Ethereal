@@ -293,6 +293,25 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         }
     }
 
+    // Identify moves which are candidate singular moves
+    if (   !RootNode
+        &&  depth >= 8
+        &&  ttDepth >= depth - 2
+        && (ttBound & BOUND_LOWER)) {
+
+        rBeta = MAX(ttValue - depth, -MATE);
+        value = singularity(thread, ttMove, depth, rBeta, beta);
+
+        // Step 15. MultiCut. Sometimes candidate Singular moves are shown to be non-Singular.
+        // If this happens, and the rBeta used is greater than beta, then we have multiple moves
+        // which appear to beat beta at a reduced depth.
+        if (value > rBeta && rBeta >= beta)
+            return rBeta;
+
+        // Move is singular if all other moves failed low
+        singular = value <= rBeta;
+    }
+
     // Step 6. Initialize flags and values used by pruning and search methods
 
     // We can grab in check based on the already computed king attackers bitboard
@@ -394,29 +413,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     }
 
     // Step 11. Initialize the Move Picker and being searching through each
-    initMovePicker(&movePicker, thread, ttMove);
-
-    // Identify moves which are candidate singular moves
-    if (   !RootNode
-        &&  depth >= 8
-        &&  ttDepth >= depth - 2
-        && (ttBound & BOUND_LOWER)) {
-
-        rBeta = MAX(ttValue - depth, -MATE);
-        value = singularity(thread, ttMove, depth, rBeta, beta);
-
-        // Step 15. MultiCut. Sometimes candidate Singular moves are shown to be non-Singular.
-        // If this happens, and the rBeta used is greater than beta, then we have multiple moves
-        // which appear to beat beta at a reduced depth.
-        if (value > rBeta && rBeta >= beta)
-            return rBeta;
-
-        // Move is singular if all other moves failed low
-        singular = value <= rBeta;
-    }
-
-    // Step 10. Initialize the Move Picker and being searching through each
     // move one at a time, until we run out or a move generates a cutoff
+    initMovePicker(&movePicker, thread, ttMove);
     while ((move = selectNextMove(&movePicker, board, skipQuiets)) != NONE_MOVE) {
 
         // MultiPV and searchmoves may limit our search options
