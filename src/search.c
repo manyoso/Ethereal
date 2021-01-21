@@ -50,7 +50,7 @@ int LateMovePruningCounts[2][9];
 volatile int ABORT_SIGNAL; // Global ABORT flag for threads
 volatile int IS_PONDERING; // Global PONDER flag for threads
 volatile int ANALYSISMODE; // Whether to make some changes for Analysis
-double EPSILON = 0.95;
+double EPSILON = 0.98;
 
 void initSearch() {
 
