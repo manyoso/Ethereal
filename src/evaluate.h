@@ -168,8 +168,8 @@ static const int RookValue   = S( 627, 803);
 static const int QueenValue  = S(1292,1623);
 static const int KingValue   = S(   0,   0);
 static const int SEEPieceValues[] = {
-    S(  82, 144),  S( 426, 475),  S( 441, 510),  S( 627, 803),
-    S(1292,1623),    0,    0,    0,
+    82,   426,  441,  627,
+    1292,   0,    0,    0,
 };
 
 extern int PSQT[32][SQUARE_NB];
