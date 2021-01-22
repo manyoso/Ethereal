@@ -72,7 +72,7 @@ struct Thread {
     Thread *threads;
     jmp_buf jbuffer;
 
-    float stats[90000000];
+    float stats[900000000];
     int statsLength;
 };
 

@@ -304,6 +304,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     eval = thread->evalStack[thread->height]
          = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
 
+    addStat(thread, eval);
+
     // Futility Pruning Margin
     futilityMargin = FutilityMargin * depth;
 
@@ -668,6 +670,8 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
     // Save a history of the static evaluations
     eval = thread->evalStack[thread->height]
          = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
+
+    addStat(thread, eval);
 
     // Step 5. Eval Pruning. If a static evaluation of the board will
     // exceed beta, then we can stop the search here. Also, if the static
