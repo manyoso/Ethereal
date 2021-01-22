@@ -161,4 +161,10 @@ void initEval();
 #define ScoreEG(s) ((int16_t)((uint16_t)((unsigned)((s) + 0x8000) >> 16)))
 
 extern int PSQT[32][SQUARE_NB];
+extern const int PawnValue;
+extern const int KnightValue;
+extern const int BishopValue;
+extern const int RookValue;
+extern const int QueenValue;
+extern const int KingValue;
 extern const int Tempo;

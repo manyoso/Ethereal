@@ -329,6 +329,13 @@ int boardDrawnByInsufficientMaterial(Board *board) {
             || (!board->pieces[BISHOP] && popcount(board->pieces[KNIGHT]) <= 2));
 }
 
+int boardGamePhase(Board *board) {
+    // Calculate the game phase based on remaining material (Fruit Method)
+    return  4 * popcount(board->pieces[QUEEN ])
+          + 2 * popcount(board->pieces[ROOK  ])
+          + 1 * popcount(board->pieces[KNIGHT]|board->pieces[BISHOP]);
+}
+
 uint64_t perft(Board *board, int depth) {
 
     Undo undo[1];

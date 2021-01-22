@@ -463,10 +463,7 @@ int evaluateBoard(Thread *thread, Board *board) {
     eval += evaluateClosedness(&ei, board);
     eval += evaluateComplexity(&ei, board, eval);
 
-    // Calculate the game phase based on remaining material (Fruit Method)
-    phase = 4 * popcount(board->pieces[QUEEN ])
-          + 2 * popcount(board->pieces[ROOK  ])
-          + 1 * popcount(board->pieces[KNIGHT]|board->pieces[BISHOP]);
+    phase = boardGamePhase(board);
 
     // Scale evaluation based on remaining material
     factor = evaluateScaleFactor(board, eval);

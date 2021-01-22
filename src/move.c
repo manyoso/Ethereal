@@ -528,20 +528,26 @@ int moveEstimatedValue(Board *board, uint16_t move) {
 int moveBestCaseValue(Board *board) {
 
     // Assume the opponent has at least a pawn
-    int value = SEEPieceValues[PAWN];
+    int value = PawnValue;
 
     // Check for a higher value target
-    for (int piece = QUEEN; piece > PAWN; piece--)
-        if (board->pieces[piece] & board->colours[!board->turn])
-          { value = SEEPieceValues[piece]; break; }
+    if (board->pieces[QUEEN]  & board->colours[!board->turn])
+        value = QueenValue;
+    else if (board->pieces[ROOK]   & board->colours[!board->turn])
+        value = RookValue;
+    else if (board->pieces[BISHOP] & board->colours[!board->turn])
+        value = BishopValue;
+    else if (board->pieces[KNIGHT] & board->colours[!board->turn])
+        value = KnightValue;
 
     // Check for a potential pawn promotion
     if (   board->pieces[PAWN]
         &  board->colours[board->turn]
         & (board->turn == WHITE ? RANK_7 : RANK_2))
-        value += SEEPieceValues[QUEEN] - SEEPieceValues[PAWN];
+        value += QueenValue - PawnValue;
 
-    return value;
+    const int phase = boardGamePhase(board);
+    return (ScoreMG(value) * phase + ScoreEG(value) * (24 - phase)) / 24;
 }
 
 int moveWasLegal(Board *board) {
