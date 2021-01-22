@@ -36,17 +36,6 @@
 EvalTrace T, EmptyTrace;
 int PSQT[32][SQUARE_NB];
 
-#define S(mg, eg) (MakeScore((mg), (eg)))
-
-/* Material Value Evaluation Terms */
-
-const int PawnValue   = S(  82, 144);
-const int KnightValue = S( 426, 475);
-const int BishopValue = S( 441, 510);
-const int RookValue   = S( 627, 803);
-const int QueenValue  = S(1292,1623);
-const int KingValue   = S(   0,   0);
-
 /* Piece Square Evaluation Terms */
 
 const int PawnPSQT[SQUARE_NB] = {
@@ -463,10 +452,7 @@ int evaluateBoard(Thread *thread, Board *board) {
     eval += evaluateClosedness(&ei, board);
     eval += evaluateComplexity(&ei, board, eval);
 
-    // Calculate the game phase based on remaining material (Fruit Method)
-    phase = 4 * popcount(board->pieces[QUEEN ])
-          + 2 * popcount(board->pieces[ROOK  ])
-          + 1 * popcount(board->pieces[KNIGHT]|board->pieces[BISHOP]);
+    phase = boardGamePhase(board);
 
     // Scale evaluation based on remaining material
     factor = evaluateScaleFactor(board, eval);

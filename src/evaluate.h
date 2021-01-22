@@ -160,5 +160,16 @@ void initEval();
 #define ScoreMG(s) ((int16_t)((uint16_t)((unsigned)((s)))))
 #define ScoreEG(s) ((int16_t)((uint16_t)((unsigned)((s) + 0x8000) >> 16)))
 
+#define S(mg, eg) (MakeScore((mg), (eg)))
+
+/* Material Value Evaluation Terms */
+
+static const int PawnValue   = S(  82, 144);
+static const int KnightValue = S( 426, 475);
+static const int BishopValue = S( 441, 510);
+static const int RookValue   = S( 627, 803);
+static const int QueenValue  = S(1292,1623);
+static const int KingValue   = S(   0,   0);
+
 extern int PSQT[32][SQUARE_NB];
 extern const int Tempo;
