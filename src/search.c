@@ -50,7 +50,7 @@ int LateMovePruningCounts[2][9];
 volatile int ABORT_SIGNAL; // Global ABORT flag for threads
 volatile int IS_PONDERING; // Global PONDER flag for threads
 volatile int ANALYSISMODE; // Whether to make some changes for Analysis
-int EPSILON = 985;
+int EPSILON = 995;
 
 int smoothEval(Thread *thread, int eval) {
 
