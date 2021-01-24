@@ -316,6 +316,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     thread->killers[thread->height+1][0] = NONE_MOVE;
     thread->killers[thread->height+1][1] = NONE_MOVE;
 
+    int noprune = thread->depth < WindowDepth;
+
     // ------------------------------------------------------------------------
     // All elo estimates as of Ethereal 11.80, @ 12s+0.12 @ 1.275mnps
     // ------------------------------------------------------------------------
@@ -323,7 +325,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Step 7 (~32 elo). Beta Pruning / Reverse Futility Pruning / Static
     // Null Move Pruning. If the eval is well above beta, defined by a depth
     // dependent margin, then we assume the eval will hold above beta
-    if (   !PvNode
+    if (   !noprune
+        && !PvNode
         && !inCheck
         &&  depth <= BetaPruningDepth
         &&  eval - BetaMargin * depth > beta)
@@ -332,7 +335,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Step 8 (~3 elo). Alpha Pruning for main search loop. The idea is
     // that for low depths if eval is so bad that even a large static
     // bonus doesn't get us beyond alpha, then eval will hold below alpha
-    if (   !PvNode
+    if (   !noprune
+        && !PvNode
         && !inCheck
         &&  depth <= AlphaPruningDepth
         &&  eval + AlphaMargin <= alpha)
@@ -343,7 +347,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // gain control of the game, we can be somewhat safe in saying that
     // our position is too good to be true. We avoid NMP when we have
     // information from the Transposition Table which suggests it will fail
-    if (   !PvNode
+    if (   !noprune
+        && !PvNode
         && !inCheck
         &&  eval >= beta
         &&  depth >= NullMovePruningDepth
@@ -364,7 +369,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Step 10 (~9 elo). Probcut Pruning. If we have a good capture that causes a cutoff
     // with an adjusted beta value at a reduced search depth, we expect that it will
     // cause a similar cutoff at this search depth, with a normal beta value
-    if (   !PvNode
+    if (   !noprune
+        && !PvNode
         &&  depth >= ProbCutDepth
         &&  abs(beta) < MATE_IN_MAX
         && (eval >= beta || eval + moveBestCaseValue(board) >= beta + ProbCutMargin)) {
@@ -413,14 +419,15 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Step 12 (~80 elo). Late Move Pruning / Move Count Pruning. If we
         // have seen many moves in this position already, and we don't expect
         // anything from this move, we can skip all the remaining quiets
-        if (   best > -MATE_IN_MAX
+        if (  !noprune
+            && best > -MATE_IN_MAX
             && depth <= LateMovePruningDepth
             && movesSeen >= LateMovePruningCounts[improving][depth])
             skipQuiets = 1;
 
         // Step 13 (~175 elo). Quiet Move Pruning. Prune any quiet move that meets one
         // of the criteria below, only after proving a non mated line exists
-        if (isQuiet && best > -MATE_IN_MAX) {
+        if (!noprune && isQuiet && best > -MATE_IN_MAX) {
 
             // Base LMR value that we expect to use later
             R = LMRTable[MIN(depth, 63)][MIN(played, 63)];
@@ -457,7 +464,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Step 14 (~42 elo). Static Exchange Evaluation Pruning. Prune moves which fail
         // to beat a depth dependent SEE threshold. The use of movePicker.stage
         // is a speedup, which assumes that good noisy moves have a positive SEE
-        if (    best > -MATE_IN_MAX
+        if (  !noprune
+            && best > -MATE_IN_MAX
             &&  depth <= SEEPruningDepth
             &&  movePicker.stage > STAGE_GOOD_NOISY
             && !staticExchangeEvaluation(board, move, seeMargin[isQuiet]))
@@ -478,7 +486,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             uciReportCurrentMove(board, move, played + thread->multiPV, thread->depth);
 
         // Identify moves which are candidate singular moves
-        singular =  !RootNode
+        singular =  !noprune
+                 && !RootNode
                  &&  depth >= 8
                  &&  move == ttMove
                  &&  ttDepth >= depth - 2
@@ -506,7 +515,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Step 17A (~249 elo). Quiet Late Move Reductions. Reduce the search depth
         // of Quiet moves after we've explored the main line. If a reduced search
         // manages to beat alpha, against our expectations, we perform a research
-        if (isQuiet && depth > 2 && played > 1) {
+        if (!noprune && isQuiet && depth > 2 && played > 1) {
 
             /// Use the LMR Formula as a starting point
             R  = LMRTable[MIN(depth, 63)][MIN(played, 63)];
@@ -529,7 +538,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
         // Step 17B (~3 elo). Noisy Late Move Reductions. The same as Step 15A, but
         // only applied to Tactical moves with unusually poor Capture History scores
-        else if (!isQuiet && depth > 2 && played > 1) {
+        else if (!noprune && !isQuiet && depth > 2 && played > 1) {
 
             // Initialize R based on Capture History
             R = MIN(3, 3 - (hist + 4000) / 2000);
