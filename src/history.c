@@ -50,6 +50,22 @@ void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int de
         thread->killers[thread->height][0] = bestMove;
     }
 
+    // Apply a malus to the former move if our bestMove was its counter
+    if (thread->cmtable[!colour][cmPiece][cmTo] == bestMove) {
+        // Apply a malus until the final move
+        int malus = MIN((depth-1)*(depth-1), HistoryMax);
+
+        // Extract information from the former move
+        int cmFrom = MoveFrom(counter);
+
+        // Update Butterfly History
+        updateHistoryWithDecay(&thread->history[colour][cmFrom][cmTo], malus);
+
+        // Update Counter Move History
+        if (counter != NONE_MOVE && counter != NULL_MOVE)
+            updateHistoryWithDecay(&thread->continuation[0][fmPiece][fmTo][cmFrom][cmTo], malus);
+    }
+
     // Update Counter Moves (BestMove refutes the previous move)
     if (counter != NONE_MOVE && counter != NULL_MOVE)
         thread->cmtable[!colour][cmPiece][cmTo] = bestMove;
