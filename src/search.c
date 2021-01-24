@@ -206,7 +206,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
-    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
+    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2], probCutMargin;
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
     MovePicker movePicker;
@@ -319,6 +319,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Improving if our static eval increased in the last move
     improving = thread->height >= 2 && eval > thread->evalStack[thread->height-2];
 
+    probCutMargin = ProbCutMargin * (!improving + 1);
+
     // Reset Killer moves for our children
     thread->killers[thread->height+1][0] = NONE_MOVE;
     thread->killers[thread->height+1][1] = NONE_MOVE;
@@ -374,10 +376,10 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     if (   !PvNode
         &&  depth >= ProbCutDepth
         &&  abs(beta) < MATE_IN_MAX
-        && (eval >= beta || eval + moveBestCaseValue(board) >= beta + ProbCutMargin)) {
+        && (eval >= beta || eval + moveBestCaseValue(board) >= beta + probCutMargin)) {
 
         // Try tactical moves which maintain rBeta
-        rBeta = MIN(beta + ProbCutMargin, MATE - MAX_PLY - 1);
+        rBeta = MIN(beta + probCutMargin, MATE - MAX_PLY - 1);
         initNoisyMovePicker(&movePicker, thread, rBeta - eval);
         while ((move = selectNextMove(&movePicker, board, 1)) != NONE_MOVE) {
 
