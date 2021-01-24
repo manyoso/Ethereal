@@ -309,8 +309,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     seeMargin[0] = SEENoisyMargin * depth * depth;
     seeMargin[1] = SEEQuietMargin * depth;
 
-    // Improving if our static eval increased in the last move
-    improving = thread->height >= 2 && eval > thread->evalStack[thread->height-2];
+    // Improving if our static eval increased in the last ply
+    improving = thread->height >= 1 && eval > thread->evalStack[thread->height-1];
 
     // Reset Killer moves for our children
     thread->killers[thread->height+1][0] = NONE_MOVE;
