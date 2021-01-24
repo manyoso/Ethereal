@@ -312,7 +312,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Improving if our static eval increased in the last move
     improving = thread->height >= 2 && eval > thread->evalStack[thread->height-2];
 
-    probCutMargin = ProbCutMargin * (!improving + 1);
+    probCutMargin = ProbCutMargin + (!improving ? ProbCutMargin / 2 : 0);
 
     // Reset Killer moves for our children
     thread->killers[thread->height+1][0] = NONE_MOVE;
