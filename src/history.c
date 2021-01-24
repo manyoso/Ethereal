@@ -29,7 +29,7 @@ static void updateHistoryWithDecay(int16_t *current, int delta) {
     *current += HistoryMultiplier * delta - *current * abs(delta) / HistoryDivisor;
 }
 
-void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int depth) {
+void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int depth, int improving) {
 
     int bonus, colour = thread->board.turn;
     uint16_t bestMove = moves[length-1];
@@ -51,7 +51,7 @@ void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int de
     }
 
     // Apply a malus to the former move if our bestMove was its counter
-    if (thread->cmtable[!colour][cmPiece][cmTo] == bestMove) {
+    if (improving && thread->cmtable[!colour][cmPiece][cmTo] == bestMove) {
         // Apply a malus until the final move
         int malus = MIN((depth-1)*(depth-1), HistoryMax);
 
