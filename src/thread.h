@@ -50,6 +50,7 @@ struct Thread {
     uint64_t nodes, tbhits;
 
     int *evalStack, _evalStack[STACK_SIZE];
+    int *trendStack, _trendStack[STACK_SIZE];
     uint16_t *moveStack, _moveStack[STACK_SIZE];
     int *pieceStack, _pieceStack[STACK_SIZE];
 
