@@ -60,7 +60,7 @@ void initSearch() {
 
     for (int t = 0; t < 6; ++t)
         for (int depth = 0; depth < 9; ++depth)
-            LateMovePruningCounts[t][depth] = roundf((depth > 0 ? t / 2.0 + 2.5 : 0) + depth * depth * (t + 4) / 8.0);
+            LateMovePruningCounts[t][depth] = roundf((depth > 0 ? t / 2.0 + 2.5 : 0) + depth * depth * (t + 4) / 9.0);
 }
 
 void getBestMove(Thread *threads, Board *board, Limits *limits, uint16_t *best, uint16_t *ponder) {
