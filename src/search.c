@@ -463,6 +463,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             && !staticExchangeEvaluation(board, move, seeMargin[isQuiet]))
             continue;
 
+        const int isTTSacrifice = (PvNode && move == ttMove && !staticExchangeEvaluation(board, move, 0));
+
         // Apply move, skip if move is illegal
         if (!apply(thread, board, move))
             continue;
@@ -490,7 +492,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // with very strong continuation histories, so long as they are along the PV line
 
         extension = singular ? singularity(thread, &movePicker, ttValue, depth, beta)
-                  : inCheck || (isQuiet && PvNode && cmhist > HistexLimit && fmhist > HistexLimit);
+                  : inCheck || (isQuiet && PvNode && cmhist > HistexLimit && fmhist > HistexLimit) || isTTSacrifice;
 
         newDepth = depth + (extension && !RootNode);
 
