@@ -90,10 +90,7 @@ void newSearchThreadPool(Thread *threads, Board *board, Limits *limits, SearchIn
         threads[i].nodes     = 0ull;
         threads[i].tbhits    = 0ull;
 
-        for (int j = 0; j < MAX_PLY+1-2; ++j) {
-            threads[i].killers[j][0] = threads[i].killers[j+2][0];
-            threads[i].killers[j][1] = threads[i].killers[j+2][1];
-        }
+        memmove(threads[i].killers[0], threads[i].killers[2], (MAX_PLY+1-2)*sizeof(uint16_t[2]));
 
         memcpy(&threads[i].board, board, sizeof(Board));
         threads[i].contempt = board->turn == WHITE ? contempt : -contempt;
