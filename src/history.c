@@ -230,11 +230,14 @@ void getRefutationMoves(Thread *thread, uint16_t *killer1, uint16_t *killer2, ui
     int cmPiece = thread->pieceStack[thread->height-1];
     int cmTo = MoveTo(previous);
 
-    // Set Killer Moves by height
-    *killer1 = thread->killers[thread->height][0];
-    *killer2 = thread->killers[thread->height][1];
+    uint16_t refutations[3] = {NONE_MOVE};
+    refutations[0] = thread->killers[thread->height][0];
+    refutations[1] = thread->killers[thread->height][1];
+    if (previous == NONE_MOVE || previous == NULL_MOVE) refutations[2] = NONE_MOVE;
+    else refutations[2] = thread->cmtable[!thread->board.turn][cmPiece][cmTo];
 
-    // Set Counter Move if one exists
-    if (previous == NONE_MOVE || previous == NULL_MOVE) *counter = NONE_MOVE;
-    else *counter = thread->cmtable[!thread->board.turn][cmPiece][cmTo];
+    const int counterIsKiller2 = refutations[1] == refutations[2];
+    *killer1 = counterIsKiller2 ? refutations[1] : refutations[0];
+    *killer2 = counterIsKiller2 ? refutations[0] : refutations[1];
+    *counter = refutations[2];
 }
