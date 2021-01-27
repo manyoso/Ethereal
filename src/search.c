@@ -448,14 +448,14 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             // Step 13C (~8 elo). Counter Move Pruning. Moves with poor counter
             // move history are pruned at near leaf nodes of the search.
-            if (   movePicker.stage > STAGE_COUNTER_MOVE
+            if (   movePicker.stage > STAGE_REFUTATIONS
                 && cmhist < CounterMoveHistoryLimit[improving]
                 && depth - R <= CounterMovePruningDepth[improving])
                 continue;
 
             // Step 13D (~1.5 elo). Follow Up Move Pruning. Moves with poor
             // follow up move history are pruned at near leaf nodes of the search.
-            if (   movePicker.stage > STAGE_COUNTER_MOVE
+            if (   movePicker.stage > STAGE_REFUTATIONS
                 && fmhist < FollowUpMoveHistoryLimit[improving]
                 && depth - R <= FollowUpMovePruningDepth[improving])
                 continue;
