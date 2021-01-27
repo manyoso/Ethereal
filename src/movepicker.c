@@ -52,7 +52,8 @@ void initMovePicker(MovePicker *mp, Thread *thread, uint16_t ttMove) {
     mp->tableMove = ttMove;
 
     // Lookup our refutations (killers and counter moves)
-    getRefutationMoves(thread, &mp->killer1, &mp->killer2, &mp->counter);
+    getRefutationMoves(thread, mp->refutations);
+    mp->refutationSize = 3;
 
     // General housekeeping
     mp->threshold = 0;
@@ -74,7 +75,8 @@ void initNoisyMovePicker(MovePicker *mp, Thread *thread, int threshold) {
     mp->stage = STAGE_GENERATE_NOISY;
 
     // Skip all of the special (refutation and table) moves
-    mp->tableMove = mp->killer1 = mp->killer2 = mp->counter = NONE_MOVE;
+    mp->tableMove = NONE_MOVE;
+    mp->refutationSize = 0;
 
     // General housekeeping
     mp->threshold = threshold;
@@ -134,9 +136,9 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
                         return selectNextMove(mp, board, skipQuiets);
 
                     // Don't play the refutation moves twice
-                    if (bestMove == mp->killer1) mp->killer1 = NONE_MOVE;
-                    if (bestMove == mp->killer2) mp->killer2 = NONE_MOVE;
-                    if (bestMove == mp->counter) mp->counter = NONE_MOVE;
+                    if (bestMove == mp->refutations[0]) mp->refutations[0] = NONE_MOVE;
+                    if (bestMove == mp->refutations[1]) mp->refutations[1] = NONE_MOVE;
+                    if (bestMove == mp->refutations[2]) mp->refutations[2] = NONE_MOVE;
 
                     return bestMove;
                 }
@@ -148,43 +150,24 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
                 return selectNextMove(mp, board, skipQuiets);
             }
 
-            mp->stage = STAGE_KILLER_1;
+            mp->stage = STAGE_REFUTATIONS;
 
             /* fallthrough */
 
-        case STAGE_KILLER_1:
+        case STAGE_REFUTATIONS:
 
             // Play killer move if not yet played, and pseudo legal
-            mp->stage = STAGE_KILLER_2;
-            if (   !skipQuiets
-                &&  mp->killer1 != mp->tableMove
-                &&  moveIsPseudoLegal(board, mp->killer1))
-                return mp->killer1;
+            if (!skipQuiets && mp->refutationSize) {
 
-            /* fallthrough */
+                bestMove = mp->refutations[3 - mp->refutationSize--];
 
-        case STAGE_KILLER_2:
+                if (bestMove != mp->tableMove && moveIsPseudoLegal(board, bestMove))
+                    return bestMove;
 
-            // Play killer move if not yet played, and pseudo legal
-            mp->stage = STAGE_COUNTER_MOVE;
-            if (   !skipQuiets
-                &&  mp->killer2 != mp->tableMove
-                &&  moveIsPseudoLegal(board, mp->killer2))
-                return mp->killer2;
+                return selectNextMove(mp, board, skipQuiets);
+            }
 
-            /* fallthrough */
-
-        case STAGE_COUNTER_MOVE:
-
-            // Play counter move if not yet played, and pseudo legal
             mp->stage = STAGE_GENERATE_QUIET;
-            if (   !skipQuiets
-                &&  mp->counter != mp->tableMove
-                &&  mp->counter != mp->killer1
-                &&  mp->counter != mp->killer2
-                &&  moveIsPseudoLegal(board, mp->counter))
-                return mp->counter;
-
             /* fallthrough */
 
         case STAGE_GENERATE_QUIET:
@@ -210,9 +193,9 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
                 // Don't play a move more than once
                 if (   bestMove == mp->tableMove
-                    || bestMove == mp->killer1
-                    || bestMove == mp->killer2
-                    || bestMove == mp->counter)
+                    || bestMove == mp->refutations[0]
+                    || bestMove == mp->refutations[1]
+                    || bestMove == mp->refutations[2])
                     return selectNextMove(mp, board, skipQuiets);
 
                 return bestMove;
@@ -233,9 +216,9 @@ uint16_t selectNextMove(MovePicker *mp, Board *board, int skipQuiets) {
 
                 // Don't play a move more than once
                 if (   bestMove == mp->tableMove
-                    || bestMove == mp->killer1
-                    || bestMove == mp->killer2
-                    || bestMove == mp->counter)
+                    || bestMove == mp->refutations[0]
+                    || bestMove == mp->refutations[1]
+                    || bestMove == mp->refutations[2])
                     return selectNextMove(mp, board, skipQuiets);
 
                 return bestMove;

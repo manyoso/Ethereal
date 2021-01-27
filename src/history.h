@@ -35,4 +35,4 @@ int getCaptureHistory(Thread *thread, uint16_t move);
 
 int getHistory(Thread *thread, uint16_t move, int *cmhist, int *fmhist);
 void getHistoryScores(Thread *thread, uint16_t *moves, int *scores, int start, int length);
-void getRefutationMoves(Thread *thread, uint16_t *killer1, uint16_t *killer2, uint16_t *counter);
+void getRefutationMoves(Thread *thread, uint16_t refutations[]);

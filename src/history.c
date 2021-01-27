@@ -223,7 +223,22 @@ void getHistoryScores(Thread *thread, uint16_t *moves, int *scores, int start, i
     }
 }
 
-void getRefutationMoves(Thread *thread, uint16_t *killer1, uint16_t *killer2, uint16_t *counter) {
+static void insertionSort(uint16_t moves[], int score[], int start, int end) {
+    for (int i = start + 1; i < end; ++i) {
+         int s = score[i];
+         int m = moves[i];
+         int j = i - 1;
+         while (j > -1 && score[j] > s) {
+             moves[j + 1] = moves[j];
+             score[j + 1] = score[j];
+             --j;
+         }
+         score[j + 1] = s;
+         moves[j + 1] = m;
+    }
+}
+
+void getRefutationMoves(Thread *thread, uint16_t refutations[]) {
 
     // Extract information from last move
     uint16_t previous = thread->moveStack[thread->height-1];
@@ -231,10 +246,18 @@ void getRefutationMoves(Thread *thread, uint16_t *killer1, uint16_t *killer2, ui
     int cmTo = MoveTo(previous);
 
     // Set Killer Moves by height
-    *killer1 = thread->killers[thread->height][0];
-    *killer2 = thread->killers[thread->height][1];
+    refutations[0] = thread->killers[thread->height][0];
+    refutations[1] = thread->killers[thread->height][1];
 
     // Set Counter Move if one exists
-    if (previous == NONE_MOVE || previous == NULL_MOVE) *counter = NONE_MOVE;
-    else *counter = thread->cmtable[!thread->board.turn][cmPiece][cmTo];
+    if (previous == NONE_MOVE || previous == NULL_MOVE) refutations[2] = NONE_MOVE;
+    else refutations[2] = thread->cmtable[!thread->board.turn][cmPiece][cmTo];
+
+    // Avoid any duplicates
+    if (refutations[2] == refutations[0] || refutations[2] == refutations[1])
+        refutations[2] = NONE_MOVE;
+
+    int refValues[3] = { -64000 };
+    getHistoryScores(thread, refutations, refValues, 0, (refutations[2] == NONE_MOVE ? 2 : 3));
+    insertionSort(refutations, refValues, 0, 3);
 }
