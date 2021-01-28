@@ -313,7 +313,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     improving = thread->height >= 2 && eval > thread->evalStack[thread->height-2];
 
     // Reset Killer moves for our children
-    if (thread->height > 8) {
+    if (thread->height > 5) {
         thread->killers[thread->height+1][0] = NONE_MOVE;
         thread->killers[thread->height+1][1] = NONE_MOVE;
     }
