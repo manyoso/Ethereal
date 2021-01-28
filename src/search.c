@@ -312,6 +312,12 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Improving if our static eval increased in the last move
     improving = thread->height >= 2 && eval > thread->evalStack[thread->height-2];
 
+    // Reset Killer moves for our children
+    if (thread->height > 8) {
+        thread->killers[thread->height+1][0] = NONE_MOVE;
+        thread->killers[thread->height+1][1] = NONE_MOVE;
+    }
+
     // ------------------------------------------------------------------------
     // All elo estimates as of Ethereal 11.80, @ 12s+0.12 @ 1.275mnps
     // ------------------------------------------------------------------------
