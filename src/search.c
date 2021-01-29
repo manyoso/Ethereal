@@ -110,7 +110,7 @@ void* iterativeDeepening(void *vthread) {
         bindThisThread(thread->index);
 
     // Perform iterative deepening until exit conditions
-    for (thread->depth = 1; thread->depth < MAX_PLY; thread->depth++) {
+    for (thread->depth = thread->index + 1; thread->depth < MAX_PLY; thread->depth++) {
 
         // If we abort to here, we stop searching
         if (setjmp(thread->jbuffer)) break;
