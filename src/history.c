@@ -64,7 +64,7 @@ void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int de
     if (length == 1 && depth <= 3) return;
 
     // Give an increase to bonus if we beat beta by some margin
-    const int bonus = best >= beta + 100 ? calculateBonus(depth + 1) : calculateBonus(depth);
+    const int bonus = best >= beta + 200 ? calculateBonus(depth + 1) : calculateBonus(depth);
 
     for (int i = 0; i < length; i++) {
 
