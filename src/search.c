@@ -373,6 +373,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // cause a similar cutoff at this search depth, with a normal beta value
     if (   !PvNode
         &&  depth >= ProbCutDepth
+        &&  ttHit
         &&  abs(beta) < MATE_IN_MAX
         && (eval >= beta || eval + moveBestCaseValue(board) >= beta + ProbCutMargin)) {
 
