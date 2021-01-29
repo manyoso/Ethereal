@@ -29,9 +29,14 @@ static void updateHistoryWithDecay(int16_t *current, int delta) {
     *current += HistoryMultiplier * delta - *current * abs(delta) / HistoryDivisor;
 }
 
-void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int depth) {
+static int calculateBonus(int depth) {
+    // Cap update size to avoid saturation
+    return MIN(depth * depth, HistoryMax);
+}
 
-    int bonus, colour = thread->board.turn;
+void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int depth, int best, int beta) {
+
+    int colour = thread->board.turn;
     uint16_t bestMove = moves[length-1];
 
     // Extract information from last move
@@ -58,8 +63,8 @@ void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int de
     // Depth 0 gives no bonus in any case
     if (length == 1 && depth <= 3) return;
 
-    // Cap update size to avoid saturation
-    bonus = MIN(depth*depth, HistoryMax);
+    // Give an increase to bonus if we beat beta by some margin
+    const int bonus = best >= beta + 100 ? calculateBonus(depth + 1) : calculateBonus(depth);
 
     for (int i = 0; i < length; i++) {
 
@@ -96,7 +101,7 @@ void updateKillerMoves(Thread *thread, uint16_t move) {
 
 void updateCaptureHistories(Thread *thread, uint16_t best, uint16_t *moves, int length, int depth) {
 
-    const int bonus = MIN(depth * depth, HistoryMax);
+    const int bonus = calculateBonus(depth);
 
     for (int i = 0; i < length; i++) {
 
