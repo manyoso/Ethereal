@@ -206,7 +206,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
-    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
+    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2], bestCase;
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
     MovePicker movePicker;
@@ -312,6 +312,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Futility Pruning Margin
     futilityMargin = FutilityMargin * depth;
 
+    // Move best case value
+    bestCase = moveBestCaseValue(board);
+
     // Static Exchange Evaluation Pruning Margins
     seeMargin[0] = SEENoisyMargin * depth * depth;
     seeMargin[1] = SEEQuietMargin * depth;
@@ -374,11 +377,12 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     if (   !PvNode
         &&  depth >= ProbCutDepth
         &&  abs(beta) < MATE_IN_MAX
-        && (eval >= beta || eval + moveBestCaseValue(board) >= beta + ProbCutMargin)) {
+        && (eval >= beta || eval + bestCase >= beta + ProbCutMargin)) {
 
         // Try tactical moves which maintain rBeta
         rBeta = MIN(beta + ProbCutMargin, MATE - MAX_PLY - 1);
         initNoisyMovePicker(&movePicker, thread, rBeta - eval);
+
         while ((move = selectNextMove(&movePicker, board, 1)) != NONE_MOVE) {
 
             // Apply move, skip if move is illegal
@@ -416,6 +420,12 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // All moves have one or more History scores
         hist = !isQuiet ? getCaptureHistory(thread, move)
              : getHistory(thread, move, &cmhist, &fmhist);
+
+        if (    best > -MATE_IN_MAX
+            && depth <= 5
+            && !isQuiet
+            && MAX(QSDeltaMargin, bestCase) < alpha - eval)
+            continue;
 
         // Step 12 (~80 elo). Late Move Pruning / Move Count Pruning. If we
         // have seen many moves in this position already, and we don't expect
