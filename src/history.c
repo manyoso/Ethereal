@@ -59,7 +59,7 @@ void updateHistoryHeuristics(Thread *thread, uint16_t *moves, int length, int de
     if (length == 1 && depth <= 3) return;
 
     // Cap update size to avoid saturation
-    bonus = MIN(depth*depth, HistoryMax);
+    bonus = depth > 14 ? 30 : depth*depth;
 
     for (int i = 0; i < length; i++) {
 
@@ -96,7 +96,7 @@ void updateKillerMoves(Thread *thread, uint16_t move) {
 
 void updateCaptureHistories(Thread *thread, uint16_t best, uint16_t *moves, int length, int depth) {
 
-    const int bonus = MIN(depth * depth, HistoryMax);
+    const int bonus = depth > 14 ? 30 : depth*depth;
 
     for (int i = 0; i < length; i++) {
 
