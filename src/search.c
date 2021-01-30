@@ -206,7 +206,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
-    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
+    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2], bestCase;
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
     MovePicker movePicker;
@@ -312,6 +312,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Futility Pruning Margin
     futilityMargin = FutilityMargin * depth;
 
+    // Move best case value
+    bestCase = moveBestCaseValue(board);
+
     // Static Exchange Evaluation Pruning Margins
     seeMargin[0] = SEENoisyMargin * depth * depth;
     seeMargin[1] = SEEQuietMargin * depth;
@@ -374,7 +377,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     if (   !PvNode
         &&  depth >= ProbCutDepth
         &&  abs(beta) < MATE_IN_MAX
-        && (eval >= beta || eval + moveBestCaseValue(board) >= beta + ProbCutMargin)) {
+        && (eval >= beta || eval + bestCase >= beta + ProbCutMargin)) {
 
         // Try tactical moves which maintain rBeta
         rBeta = MIN(beta + ProbCutMargin, MATE - MAX_PLY - 1);
@@ -524,6 +527,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // Increase for King moves that evade checks
             R += inCheck && pieceType(board->squares[MoveTo(move)]) == KING;
 
+            // Increase if our best case is way bad
+            R += eval + bestCase < alpha;
+
             // Reduce for Killers and Counters
             R -= movePicker.stage < STAGE_QUIET;
 
@@ -540,6 +546,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             // Initialize R based on Capture History
             R = MIN(3, 3 - (hist + 4000) / 2000);
+
+            // Increase if our best case is way bad
+            R += eval + bestCase < alpha;
 
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
