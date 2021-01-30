@@ -545,7 +545,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             R = MIN(3, 3 - (hist + 4000) / 2000);
 
             // Increase if our best case is way bad
-            R += eval + bestCase < alpha;
+            R += eval + MAX(QSDeltaMargin, bestCase) < alpha;
 
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
