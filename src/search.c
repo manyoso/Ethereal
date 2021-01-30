@@ -527,9 +527,6 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
             // Increase for King moves that evade checks
             R += inCheck && pieceType(board->squares[MoveTo(move)]) == KING;
 
-            // Increase if our best case is way bad
-            R += eval + bestCase < alpha;
-
             // Reduce for Killers and Counters
             R -= movePicker.stage < STAGE_QUIET;
 
@@ -546,6 +543,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             // Initialize R based on Capture History
             R = MIN(3, 3 - (hist + 4000) / 2000);
+
+            // Increase if our best case is way bad
+            R += eval + bestCase < alpha;
 
             // Reduce for moves that give check
             R -= !!board->kingAttackers;
