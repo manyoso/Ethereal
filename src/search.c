@@ -59,9 +59,9 @@ void initSearch() {
             LMRTable[depth][played] = 0.75 + log(depth) * log(played) / 2.25;
 
     for (int depth = 1; depth < 9; depth++) {
-        for (int gp = 0; gp < 64; gp++) {
-            LateMovePruningCounts[0][depth][gp] = 2.5 + 2 * depth * depth / 4.5 * (11.5 * log(gp + 1.85)) / 26.7 * (0.15 * gp + 0.5) / 2.3;
-            LateMovePruningCounts[1][depth][gp] = 4.0 + 4 * depth * depth / 4.5 * (11.5 * log(gp + 1.85)) / 26.7 * (0.15 * gp + 0.5) / 2.3;
+        for (int phase = 0; phase < 64; phase++) {
+            LateMovePruningCounts[0][depth][phase] = 2.5 + 2 * depth * depth / 4.5 * (11.5 * log(phase + 1.85)) / 34 * (0.15 * phase + 0.5) / 4;
+            LateMovePruningCounts[1][depth][phase] = 4.0 + 4 * depth * depth / 4.5 * (11.5 * log(phase + 1.85)) / 34 * (0.15 * phase + 0.5) / 4;
         }
     }
 }
