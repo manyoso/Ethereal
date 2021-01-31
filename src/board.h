@@ -46,5 +46,6 @@ int boardIsDrawn(Board *board, int height);
 int boardDrawnByFiftyMoveRule(Board *board);
 int boardDrawnByRepetition(Board *board, int height);
 int boardDrawnByInsufficientMaterial(Board *board);
+int boardPhase(Board *board);
 
 uint64_t perft(Board *board, int depth);

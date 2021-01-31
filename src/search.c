@@ -45,7 +45,7 @@
 #include "windows.h"
 
 int LMRTable[64][64];
-int LateMovePruningCounts[2][9];
+int LateMovePruningCounts[2][9][64];
 
 volatile int ABORT_SIGNAL; // Global ABORT flag for threads
 volatile int IS_PONDERING; // Global PONDER flag for threads
@@ -59,8 +59,10 @@ void initSearch() {
             LMRTable[depth][played] = 0.75 + log(depth) * log(played) / 2.25;
 
     for (int depth = 1; depth < 9; depth++) {
-        LateMovePruningCounts[0][depth] = 2.5 + 2 * depth * depth / 4.5;
-        LateMovePruningCounts[1][depth] = 4.0 + 4 * depth * depth / 4.5;
+        for (int gp = 0; gp < 64; gp++) {
+            LateMovePruningCounts[0][depth][gp] = 2.5 + 2 * depth * depth / 4.5 * (11.5 * log(gp + 1.85)) / 26.7 * (0.15 * gp + 0.5) / 2.3;
+            LateMovePruningCounts[1][depth][gp] = 4.0 + 4 * depth * depth / 4.5 * (11.5 * log(gp + 1.85)) / 26.7 * (0.15 * gp + 0.5) / 2.3;
+        }
     }
 }
 
@@ -206,7 +208,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
-    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
+    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2], phase;
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
     MovePicker movePicker;
@@ -316,6 +318,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     seeMargin[0] = SEENoisyMargin * depth * depth;
     seeMargin[1] = SEEQuietMargin * depth;
 
+    phase = boardPhase(board);
+
     // Improving if our static eval increased in the last move
     improving = thread->height >= 2 && eval > thread->evalStack[thread->height-2];
 
@@ -422,7 +426,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // anything from this move, we can skip all the remaining quiets
         if (   best > -MATE_IN_MAX
             && depth <= LateMovePruningDepth
-            && movesSeen >= LateMovePruningCounts[improving][depth])
+            && movesSeen >= LateMovePruningCounts[improving][depth][phase])
             skipQuiets = 1;
 
         // Step 13 (~175 elo). Quiet Move Pruning. Prune any quiet move that meets one
