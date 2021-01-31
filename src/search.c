@@ -206,7 +206,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
-    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
+    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2], gamePhase;
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
     MovePicker movePicker;
@@ -312,8 +312,10 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Futility Pruning Margin
     futilityMargin = FutilityMargin * depth;
 
+    gamePhase = boardGamePhase(board);
+
     // Static Exchange Evaluation Pruning Margins
-    seeMargin[0] = SEENoisyMargin * depth * depth;
+    seeMargin[0] = gamePhase % 2 ? -21 : -19 * depth * depth;
     seeMargin[1] = SEEQuietMargin * depth;
 
     // Improving if our static eval increased in the last move
