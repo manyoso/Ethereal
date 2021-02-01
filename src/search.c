@@ -60,8 +60,8 @@ void initSearch() {
 
     for (int depth = 1; depth < 9; depth++) {
         for (int phase = 0; phase < 64; phase++) {
-            LateMovePruningCounts[0][depth][phase] = 2.5 + 2 * depth * depth / 4.5 * (11.5 * log(phase + 1.85) + (0.15 * phase + 0.5)) / 34;
-            LateMovePruningCounts[1][depth][phase] = 4.0 + 4 * depth * depth / 4.5 * (11.5 * log(phase + 1.85) + (0.15 * phase + 0.5)) / 34;
+            LateMovePruningCounts[0][depth][phase] = 2.5 + 2 * depth * depth / 4.5 * (11.5 * log(phase + 1.85) + (0.15 * phase + 0.5)) / 36;
+            LateMovePruningCounts[1][depth][phase] = 4.0 + 4 * depth * depth / 4.5 * (11.5 * log(phase + 1.85) + (0.15 * phase + 0.5)) / 36;
         }
     }
 }
@@ -426,7 +426,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // anything from this move, we can skip all the remaining quiets
         if (   best > -MATE_IN_MAX
             && depth <= LateMovePruningDepth
-            && movesSeen >= LateMovePruningCounts[improving][depth][phase])
+            && movesSeen >= LateMovePruningCounts[improving][depth][thread->depth >= 10 ? phase : 16])
             skipQuiets = 1;
 
         // Step 13 (~175 elo). Quiet Move Pruning. Prune any quiet move that meets one
