@@ -60,8 +60,8 @@ void initSearch() {
 
     for (int depth = 1; depth < 9; depth++) {
         for (int phase = 0; phase < 64; phase++) {
-            LateMovePruningCounts[0][depth][phase] = 2.5 + 2 * depth * depth / 4.5 * (11.5 * log(phase + 1.85)) / 30 * (0.15 * phase + 0.5) / 2.5;
-            LateMovePruningCounts[1][depth][phase] = 4.0 + 4 * depth * depth / 4.5 * (11.5 * log(phase + 1.85)) / 30 * (0.15 * phase + 0.5) / 2.5;
+            LateMovePruningCounts[0][depth][phase] = 2.5 + 2 * depth * depth / 4.5 * (11.5 * log(phase + 1.85) + (0.15 * phase + 0.5)) / 38;
+            LateMovePruningCounts[1][depth][phase] = 4.0 + 4 * depth * depth / 4.5 * (11.5 * log(phase + 1.85) + (0.15 * phase + 0.5)) / 38;
         }
     }
 }
