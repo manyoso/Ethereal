@@ -45,11 +45,30 @@
 #include "windows.h"
 
 int LMRTable[64][64];
-int LateMovePruningCounts[2][9][64];
+int LateMovePruningCounts[2][9][24];
 
 volatile int ABORT_SIGNAL; // Global ABORT flag for threads
 volatile int IS_PONDERING; // Global PONDER flag for threads
 volatile int ANALYSISMODE; // Whether to make some changes for Analysis
+
+
+static float expectedNoisyFactor(int phase) {
+
+    // The expected noisy branching factor given the game phase.
+    // This was empirically derived from fitting the curve of the real
+    // branching factor of tens of millions of positions from games
+    // played at LTC time control. The best fit curve was linear.
+    return 0.15 * phase + 0.5;
+}
+
+static float expectedQuietFactor(int phase) {
+
+    // The expected quiet branching factor given the game phase.
+    // This was empirically derived from fitting the curve of the real
+    // branching factor of tens of millions of positions from games
+    // played at LTC time control. The best fit curve was logarithmic.
+    return 11.5 * log(phase + 1.85);
+}
 
 void initSearch() {
 
@@ -59,10 +78,10 @@ void initSearch() {
             LMRTable[depth][played] = 0.75 + log(depth) * log(played) / 2.25;
 
     for (int depth = 1; depth < 9; depth++) {
-        for (int phase = 0; phase < 64; phase++) {
-            const float phaseFactor = (11.5 * log(phase + 1.85) + (0.15 * phase + 0.5)) / 38;
-            LateMovePruningCounts[0][depth][phase] = 2.5 * phaseFactor + 2 * depth * depth / 4.5 * phaseFactor;
-            LateMovePruningCounts[1][depth][phase] = 4.0 * phaseFactor + 4 * depth * depth / 4.5 * phaseFactor;
+        for (int phase = 0; phase < 24; phase++) {
+            const float pf = (expectedQuietFactor(phase) + expectedNoisyFactor(phase)) / 39;
+            LateMovePruningCounts[0][depth][phase] = 2.5 * pf + 2 * depth * depth / 4.5 * pf;
+            LateMovePruningCounts[1][depth][phase] = 4.0 * pf + 4 * depth * depth / 4.5 * pf;
         }
     }
 }
@@ -319,7 +338,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     seeMargin[0] = SEENoisyMargin * depth * depth;
     seeMargin[1] = SEEQuietMargin * depth;
 
-    phase = boardPhase(board);
+    phase = MIN(24, boardPhase(board));
 
     // Improving if our static eval increased in the last move
     improving = thread->height >= 2 && eval > thread->evalStack[thread->height-2];
