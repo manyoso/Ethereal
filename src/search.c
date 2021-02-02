@@ -421,6 +421,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // have seen many moves in this position already, and we don't expect
         // anything from this move, we can skip all the remaining quiets
         if (   best > -MATE_IN_MAX
+            && thread->depth - depth >= LateMovePruningDepth
             && depth <= LateMovePruningDepth
             && movesSeen >= LateMovePruningCounts[improving][depth])
             skipQuiets = 1;
