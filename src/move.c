@@ -34,7 +34,7 @@
 #include "uci.h"
 #include "zobrist.h"
 
-static const int gamePhaseValue[6] = { 0, 1, 1, 2, 4, 0 };
+static const int gamePhaseValue[7] = { 0, 1, 1, 2, 4, 0, 0 };
 
 static void updateCastleZobrist(Board *board, uint64_t oldRooks, uint64_t newRooks) {
     uint64_t diff = oldRooks ^ newRooks;
