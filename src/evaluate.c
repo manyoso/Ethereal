@@ -441,7 +441,7 @@ const int Tempo = 20;
 int evaluateBoard(Thread *thread, Board *board) {
 
     EvalInfo ei;
-    int phase, factor, eval, pkeval, hashed;
+    int factor, eval, pkeval, hashed;
 
     // We can recognize positions we just evaluated
     if (thread->moveStack[thread->height-1] == NULL_MOVE)
@@ -463,18 +463,13 @@ int evaluateBoard(Thread *thread, Board *board) {
     eval += evaluateClosedness(&ei, board);
     eval += evaluateComplexity(&ei, board, eval);
 
-    // Calculate the game phase based on remaining material (Fruit Method)
-    phase = 4 * popcount(board->pieces[QUEEN ])
-          + 2 * popcount(board->pieces[ROOK  ])
-          + 1 * popcount(board->pieces[KNIGHT]|board->pieces[BISHOP]);
-
     // Scale evaluation based on remaining material
     factor = evaluateScaleFactor(board, eval);
     if (TRACE) T.factor = factor;
 
     // Compute and store an interpolated evaluation from white's POV
-    eval = (ScoreMG(eval) * phase
-         +  ScoreEG(eval) * (24 - phase) * factor / SCALE_NORMAL) / 24;
+    eval = (ScoreMG(eval) * board->phase
+         +  ScoreEG(eval) * (24 - board->phase) * factor / SCALE_NORMAL) / 24;
     storeCachedEvaluation(thread, board, eval);
 
     // Store a new Pawn King Entry if we did not have one

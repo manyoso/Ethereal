@@ -34,6 +34,8 @@
 #include "uci.h"
 #include "zobrist.h"
 
+static const int gamePhaseValue[7] = { 0, 1, 1, 2, 4, 0, 0 };
+
 static void updateCastleZobrist(Board *board, uint64_t oldRooks, uint64_t newRooks) {
     uint64_t diff = oldRooks ^ newRooks;
     while (diff)
@@ -185,6 +187,8 @@ void applyNormalMove(Board *board, uint16_t move, Undo *undo) {
             board->hash ^= ZobristEnpassKeys[fileOf(from)];
         }
     }
+
+    board->phase -= gamePhaseValue[toType];
 }
 
 void applyCastleMove(Board *board, uint16_t move, Undo *undo) {
@@ -316,6 +320,9 @@ void applyPromotionMove(Board *board, uint16_t move, Undo *undo) {
     assert(pieceType(fromPiece) == PAWN);
     assert(pieceType(toPiece) != PAWN);
     assert(pieceType(toPiece) != KING);
+
+    board->phase -= gamePhaseValue[toType];
+    board->phase += gamePhaseValue[promotype];
 }
 
 void applyNullMove(Board *board, Undo *undo) {
@@ -381,6 +388,7 @@ void revertMove(Board *board, uint16_t move, Undo *undo) {
 
         board->squares[from] = board->squares[to];
         board->squares[to] = undo->capturePiece;
+        board->phase += gamePhaseValue[toType];
     }
 
     else if (MoveType(move) == CASTLE_MOVE) {
@@ -417,6 +425,8 @@ void revertMove(Board *board, uint16_t move, Undo *undo) {
 
         board->squares[from] = makePiece(PAWN, board->turn);
         board->squares[to] = undo->capturePiece;
+        board->phase += gamePhaseValue[toType];
+        board->phase -= gamePhaseValue[promotype];
     }
 
     else { // (MoveType(move) == ENPASS_MOVE)

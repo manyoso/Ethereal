@@ -96,6 +96,13 @@ void squareToString(int sq, char *str) {
     *str++ = '\0';
 }
 
+static int calculateGamePhase(Board *board) {
+    // Calculate the game phase based on remaining material (Fruit Method)
+    return  4 * popcount(board->pieces[QUEEN ])
+          + 2 * popcount(board->pieces[ROOK  ])
+          + 1 * popcount(board->pieces[KNIGHT]|board->pieces[BISHOP]);
+}
+
 void boardFromFEN(Board *board, const char *fen, int chess960) {
 
     static const uint64_t StandardCastles = (1ull <<  0) | (1ull <<  7)
@@ -176,6 +183,8 @@ void boardFromFEN(Board *board, const char *fen, int chess960) {
     // castle setup, then we set chess960 to be true on our own. Currently, this
     // is simply a hack so that FRC positions may be added to the bench.csv
     board->chess960 = chess960 || (board->castleRooks & ~StandardCastles);
+
+    board->phase = calculateGamePhase(board);
 
     free(str);
 }

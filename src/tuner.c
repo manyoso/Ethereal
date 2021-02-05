@@ -235,16 +235,10 @@ void initTunerEntries(TEntry *entries, Thread *thread, TArray methods) {
 
 void initTunerEntry(TEntry *entry, Thread *thread, Board *board, TArray methods) {
 
-    // Use the same phase calculation as evaluate()
-    int phase = 4 * popcount(board->pieces[QUEEN ])
-              + 2 * popcount(board->pieces[ROOK  ])
-              + 1 * popcount(board->pieces[BISHOP])
-              + 1 * popcount(board->pieces[KNIGHT]);
-
     // Save time by computing phase scalars now
-    entry->pfactors[MG] = 0 + phase / 24.0;
-    entry->pfactors[EG] = 1 - phase / 24.0;
-    entry->phase = phase;
+    entry->pfactors[MG] = 0 + board->phase / 24.0;
+    entry->pfactors[EG] = 1 - board->phase / 24.0;
+    entry->phase = board->phase;
 
     // Save a white POV static evaluation
     TVector coeffs; T = EmptyTrace;
