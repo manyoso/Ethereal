@@ -28,7 +28,7 @@ struct Board {
     uint64_t hash, pkhash, kingAttackers;
     uint64_t castleRooks, castleMasks[SQUARE_NB];
     int turn, epSquare, halfMoveCounter, fullMoveCounter;
-    int psqtmat, numMoves, chess960;
+    int psqtmat, numMoves, chess960, phase;
     uint64_t history[512];
 };
 
@@ -46,6 +46,5 @@ int boardIsDrawn(Board *board, int height);
 int boardDrawnByFiftyMoveRule(Board *board);
 int boardDrawnByRepetition(Board *board, int height);
 int boardDrawnByInsufficientMaterial(Board *board);
-int boardPhase(Board *board);
 
 uint64_t perft(Board *board, int depth);

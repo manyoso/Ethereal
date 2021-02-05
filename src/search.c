@@ -228,7 +228,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
-    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2], phase;
+    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
     MovePicker movePicker;
@@ -338,8 +338,6 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     seeMargin[0] = SEENoisyMargin * depth * depth;
     seeMargin[1] = SEEQuietMargin * depth;
 
-    phase = boardPhase(board);
-
     // Improving if our static eval increased in the last move
     improving = thread->height >= 2 && eval > thread->evalStack[thread->height-2];
 
@@ -445,9 +443,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // have seen many moves in this position already, and we don't expect
         // anything from this move, we can skip all the remaining quiets
         if (   best > -MATE_IN_MAX
-            && thread->depth - depth >= LateMovePruningDepth
             && depth <= LateMovePruningDepth
-            && movesSeen >= LateMovePruningCounts[improving][depth][phase])
+            && movesSeen >= LateMovePruningCounts[improving][depth][board->phase])
             skipQuiets = 1;
 
         // Step 13 (~175 elo). Quiet Move Pruning. Prune any quiet move that meets one
