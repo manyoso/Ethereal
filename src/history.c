@@ -188,7 +188,7 @@ int getHistory(Thread *thread, uint16_t move, int *cmhist, int *fmhist) {
     else *fmhist = thread->continuation[1][fmPiece][fmTo][piece][to];
 
     // Return CMHist + FMHist + ButterflyHist
-    return *cmhist + *fmhist + thread->history[thread->board.turn][from][to];
+    return (60 * *cmhist + 20 * *fmhist + 20 * thread->history[thread->board.turn][from][to]) / 100;
 }
 
 void getHistoryScores(Thread *thread, uint16_t *moves, int *scores, int start, int length) {
@@ -211,15 +211,17 @@ void getHistoryScores(Thread *thread, uint16_t *moves, int *scores, int start, i
         int piece = pieceType(thread->board.squares[from]);
 
         // Start with the basic Butterfly history
-        scores[i] = thread->history[thread->board.turn][from][to];
+        int hist = 20 * thread->history[thread->board.turn][from][to];
 
         // Add Counter Move History if it exists
         if (counter != NONE_MOVE && counter != NULL_MOVE)
-            scores[i] += thread->continuation[0][cmPiece][cmTo][piece][to];
+            hist += 60 * thread->continuation[0][cmPiece][cmTo][piece][to];
 
         // Add Followup Move History if it exists
         if (follow != NONE_MOVE && follow != NULL_MOVE)
-            scores[i] += thread->continuation[1][fmPiece][fmTo][piece][to];
+            hist += 20 * thread->continuation[1][fmPiece][fmTo][piece][to];
+
+        scores[i] = hist / 100;
     }
 }
 
