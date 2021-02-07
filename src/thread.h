@@ -38,6 +38,7 @@ struct Thread {
 
     Board board;
     PVariation pv;
+    PVariation formerpv;
     Limits *limits;
     SearchInfo *info;
 

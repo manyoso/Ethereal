@@ -163,7 +163,7 @@ void aspirationWindow(Thread *thread) {
     while (1) {
 
         // Perform a search and consider reporting results
-        value = search(thread, pv, alpha, beta, MAX(1, depth));
+        value = search(thread, pv, alpha, beta, MAX(1, depth), 1);
         if (   (mainThread && value > alpha && value < beta)
             || (mainThread && elapsedTime(thread->info) >= WindowTimerMS))
             uciReport(thread->threads, alpha, beta, value);
@@ -173,6 +173,8 @@ void aspirationWindow(Thread *thread) {
             thread->values[multiPV]      = value;
             thread->bestMoves[multiPV]   = pv->line[0];
             thread->ponderMoves[multiPV] = pv->length > 1 ? pv->line[1] : NONE_MOVE;
+            thread->formerpv.length = pv->length;
+            memcpy(&thread->formerpv.line, &pv->line, pv->length * sizeof(uint16_t));
             return;
         }
 
@@ -194,7 +196,7 @@ void aspirationWindow(Thread *thread) {
     }
 }
 
-int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
+int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth, int formerPv) {
 
     const int PvNode   = (alpha != beta - 1);
     const int RootNode = (thread->height == 0);
@@ -207,7 +209,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
     int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
-    uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
+    uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE, formerPvMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
     MovePicker movePicker;
     PVariation lpv;
@@ -215,7 +217,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     // Step 1. Quiescence Search. Perform a search using mostly tactical
     // moves to reach a more stable position for use as a static evaluation
     if (depth <= 0 && !board->kingAttackers)
-        return qsearch(thread, pv, alpha, beta);
+        return qsearch(thread, pv, alpha, beta, formerPv);
 
     // Prefetch TT as early as reasonable
     prefetchTTEntry(board->hash);
@@ -323,6 +325,12 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     thread->killers[thread->height+1][0] = NONE_MOVE;
     thread->killers[thread->height+1][1] = NONE_MOVE;
 
+    // Record former pv move
+    if (formerPv && thread->height < thread->formerpv.length)
+        formerPvMove = thread->formerpv.line[thread->height];
+
+    const int reductions = thread->depth - (thread->height + depth);
+
     // ------------------------------------------------------------------------
     // All elo estimates as of Ethereal 11.80, @ 12s+0.12 @ 1.275mnps
     // ------------------------------------------------------------------------
@@ -362,7 +370,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         R = 4 + depth / 6 + MIN(3, (eval - beta) / 200);
 
         apply(thread, board, NULL_MOVE);
-        value = -search(thread, &lpv, -beta, -beta+1, depth-R);
+        value = -search(thread, &lpv, -beta, -beta+1, depth-R, 0);
         revert(thread, board, NULL_MOVE);
 
         if (value >= beta) return beta;
@@ -386,11 +394,11 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             // For high depths, verify the move first with a depth one search
             if (depth >= 2 * ProbCutDepth)
-                value = -qsearch(thread, &lpv, -rBeta, -rBeta+1);
+                value = -qsearch(thread, &lpv, -rBeta, -rBeta+1, move == formerPvMove);
 
             // For low depths, or after the above, verify with a reduced search
             if (depth < 2 * ProbCutDepth || value >= rBeta)
-                value = -search(thread, &lpv, -rBeta, -rBeta+1, depth-4);
+                value = -search(thread, &lpv, -rBeta, -rBeta+1, depth-4, move == formerPvMove);
 
             // Revert the board state
             revert(thread, board, move);
@@ -496,7 +504,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // extend for any position where our King is checked. We also selectivly extend moves
         // with very strong continuation histories, so long as they are along the PV line
 
-        extension = singular ? singularity(thread, &movePicker, ttValue, depth, beta)
+        extension = singular ? singularity(thread, &movePicker, ttValue, depth, beta, formerPv)
                   : inCheck || (isQuiet && PvNode && cmhist > HistexLimit && fmhist > HistexLimit);
 
         newDepth = depth + (extension && !RootNode);
@@ -523,6 +531,9 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
 
             // Increase for King moves that evade checks
             R += inCheck && pieceType(board->squares[MoveTo(move)]) == KING;
+
+            // Decrease reductions if already reducing and this is a former pv move
+            R -= reductions && move == formerPvMove;
 
             // Reduce for Killers and Counters
             R -= movePicker.stage < STAGE_QUIET;
@@ -554,21 +565,21 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // Step 18A. If we triggered the LMR conditions (which we know by the value of R),
         // then we will perform a reduced search on the null alpha window, as we have no
         // expectation that this move will be worth looking into deeper
-        if (R != 1) value = -search(thread, &lpv, -alpha-1, -alpha, newDepth-R);
+        if (R != 1) value = -search(thread, &lpv, -alpha-1, -alpha, newDepth-R, move == formerPvMove);
 
         // Step 18B. There are two situations in which we will search again on a null window,
         // but without a depth reduction R. First, if the LMR search happened, and failed
         // high, secondly, if we did not try an LMR search, and this is not the first move
         // we have tried in a PvNode, we will research with the normally reduced depth
         if ((R != 1 && value > alpha) || (R == 1 && !(PvNode && played == 1)))
-            value = -search(thread, &lpv, -alpha-1, -alpha, newDepth-1);
+            value = -search(thread, &lpv, -alpha-1, -alpha, newDepth-1, move == formerPvMove);
 
         // Step 18C. Finally, if we are in a PvNode and a move beat alpha while being
         // search on a reduced depth, we will search again on the normal window. Also,
         // if we did not perform Step 18B, we will search for the first time on the
         // normal window. This happens only for the first move in a PvNode
         if (PvNode && (played == 1 || value > alpha))
-            value = -search(thread, &lpv, -beta, -alpha, newDepth-1);
+            value = -search(thread, &lpv, -beta, -alpha, newDepth-1, move == formerPvMove);
 
         // Revert the board state
         revert(thread, board, move);
@@ -624,7 +635,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     return best;
 }
 
-int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
+int qsearch(Thread *thread, PVariation *pv, int alpha, int beta, int formerPv) {
 
     Board *const board = &thread->board;
 
@@ -695,7 +706,7 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
 
         // Search the next ply if the move is legal
         if (!apply(thread, board, move)) continue;
-        value = -qsearch(thread, &lpv, -beta, -alpha);
+        value = -qsearch(thread, &lpv, -beta, -alpha, formerPv);
         revert(thread, board, move);
 
         // Improved current value
@@ -815,15 +826,19 @@ int staticExchangeEvaluation(Board *board, uint16_t move, int threshold) {
     return board->turn != colour;
 }
 
-int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta) {
+int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta, int formerPv) {
 
-    uint16_t move;
+    uint16_t move, formerPvMove = NONE_MOVE;
     int skipQuiets = 0, quiets = 0, tacticals = 0;
     int value = -MATE, rBeta = MAX(ttValue - depth, -MATE);
 
     MovePicker movePicker;
     PVariation lpv; lpv.length = 0;
     Board *const board = &thread->board;
+
+    // Record former pv move
+    if (formerPv && thread->height < thread->formerpv.length)
+        formerPvMove = thread->formerpv.line[thread->height];
 
     // Table move was already applied
     revert(thread, board, mp->tableMove);
@@ -836,7 +851,7 @@ int singularity(Thread *thread, MovePicker *mp, int ttValue, int depth, int beta
 
         // Perform a reduced depth search on a null rbeta window
         if (!apply(thread, board, move)) continue;
-        value = -search(thread, &lpv, -rBeta-1, -rBeta, depth / 2 - 1);
+        value = -search(thread, &lpv, -rBeta-1, -rBeta, depth / 2 - 1, move == formerPvMove);
         revert(thread, board, move);
 
         // Move failed high, thus mp->tableMove is not singular
