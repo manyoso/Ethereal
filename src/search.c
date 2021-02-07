@@ -45,7 +45,7 @@
 #include "windows.h"
 
 int LMRTable[64][64];
-int LateMovePruningCounts[2][9][64];
+int LateMovePruningCounts[2][9][25];
 
 volatile int ABORT_SIGNAL; // Global ABORT flag for threads
 volatile int IS_PONDERING; // Global PONDER flag for threads
@@ -78,10 +78,10 @@ void initSearch() {
             LMRTable[depth][played] = 0.75 + log(depth) * log(played) / 2.25;
 
     for (int depth = 1; depth < 9; depth++) {
-        for (int phase = 0; phase < 64; phase++) {
-            const float pf = (expectedQuietFactor(phase) + expectedNoisyFactor(phase)) / 38;
-            LateMovePruningCounts[0][depth][phase] = 2.5 * pf + 2 * depth * depth / 4.5 * pf;
-            LateMovePruningCounts[1][depth][phase] = 4.0 * pf + 4 * depth * depth / 4.5 * pf;
+        for (int phase = 0; phase < 25; phase++) {
+            const float pf = (expectedQuietFactor(phase) + expectedNoisyFactor(phase)) / 39;
+            LateMovePruningCounts[0][depth][phase] = 2.5 + 2 * depth * depth / 4.5 * pf;
+            LateMovePruningCounts[1][depth][phase] = 4.0 + 4 * depth * depth / 4.5 * pf;
         }
     }
 }
@@ -444,7 +444,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
         // anything from this move, we can skip all the remaining quiets
         if (   best > -MATE_IN_MAX
             && depth <= LateMovePruningDepth
-            && movesSeen >= LateMovePruningCounts[improving][depth][board->phase])
+            && movesSeen >= LateMovePruningCounts[improving][depth][MIN(board->phase, 24)])
             skipQuiets = 1;
 
         // Step 13 (~175 elo). Quiet Move Pruning. Prune any quiet move that meets one
