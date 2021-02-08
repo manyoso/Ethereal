@@ -168,13 +168,14 @@ void aspirationWindow(Thread *thread) {
             || (mainThread && elapsedTime(thread->info) >= WindowTimerMS))
             uciReport(thread->threads, alpha, beta, value);
 
+        thread->formerpv.length = pv->length;
+        memcpy(&thread->formerpv.line, &pv->line, pv->length * sizeof(uint16_t));
+
         // Search returned a result within our window
         if (value > alpha && value < beta) {
             thread->values[multiPV]      = value;
             thread->bestMoves[multiPV]   = pv->line[0];
             thread->ponderMoves[multiPV] = pv->length > 1 ? pv->line[1] : NONE_MOVE;
-            thread->formerpv.length = pv->length;
-            memcpy(&thread->formerpv.line, &pv->line, pv->length * sizeof(uint16_t));
             return;
         }
 
