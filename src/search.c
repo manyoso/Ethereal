@@ -158,10 +158,14 @@ void aspirationWindow(Thread *thread) {
     if (thread->depth >= WindowDepth) {
         assert(thread->alpha < thread->values[0]);
         assert(thread->beta > thread->values[0]);
-        if (thread->failedHigh)
-            delta = (thread->beta - thread->alpha) / 2;
-        alpha = MAX(-MATE, thread->values[0] - delta);
-        beta  = MIN( MATE, thread->values[0] + delta);
+        if (thread->failedHigh) {
+            alpha = thread->alpha;
+            beta  = thread->beta;
+            delta = thread->delta;
+        } else {
+            alpha = MAX(-MATE, thread->values[0] - delta);
+            beta  = MIN( MATE, thread->values[0] + delta);
+        }
     }
 
     while (1) {
@@ -177,6 +181,7 @@ void aspirationWindow(Thread *thread) {
             if (depth != thread->depth) {
                 thread->alpha                = alpha;
                 thread->beta                 = beta;
+                thread->delta                = delta;
                 thread->failedHigh = 1;
             } else
                 thread->failedHigh = 0;
