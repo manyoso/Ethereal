@@ -156,8 +156,12 @@ void aspirationWindow(Thread *thread) {
 
     // After a few depths use a previous result to form a window
     if (thread->depth >= WindowDepth) {
-        alpha = MAX(thread->alpha, thread->values[0] - delta);
-        beta  = MIN(thread->beta, thread->values[0] + delta);
+        assert(thread->alpha < thread->values[0]);
+        assert(thread->beta > thread->values[0]);
+        if (thread->failedHigh)
+            delta = (thread->beta - thread->alpha) / 2;
+        alpha = MAX(-MATE, thread->values[0] - delta);
+        beta  = MIN( MATE, thread->values[0] + delta);
     }
 
     while (1) {
@@ -170,8 +174,12 @@ void aspirationWindow(Thread *thread) {
 
         // Search returned a result within our window
         if (value > alpha && value < beta) {
-            thread->alpha                = alpha;
-            thread->beta                 = beta;
+            if (depth != thread->depth) {
+                thread->alpha                = alpha;
+                thread->beta                 = beta;
+                thread->failedHigh = 1;
+            } else
+                thread->failedHigh = 0;
             thread->values[multiPV]      = value;
             thread->bestMoves[multiPV]   = pv->line[0];
             thread->ponderMoves[multiPV] = pv->length > 1 ? pv->line[1] : NONE_MOVE;
