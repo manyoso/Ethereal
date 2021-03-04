@@ -48,14 +48,28 @@ int LMRTable[64][64];      // Late Move Reductions
 volatile int ABORT_SIGNAL; // Global ABORT flag for threads
 volatile int IS_PONDERING; // Global PONDER flag for threads
 volatile int ANALYSISMODE; // Whether to make some changes for Analysis
+
 int EPSILON = 995;
+int LAMBDA  = 995;
 
-int smoothEval(Thread *thread, int eval) {
+void smoothEval(Thread *thread, int eval, int *smoothedEval, int *smoothedTrend) {
 
-    if (thread->height < 2)
-        return eval;
+    if (thread->height < 2) {
+        *smoothedTrend = 0;
+        *smoothedEval  = eval;
+        return;
+    }
 
-    return ((EPSILON * eval) + (1000 - EPSILON) * thread->evalStack[thread->height-2]) / 1000;
+    if (thread->height < 3) {
+        *smoothedTrend = eval - thread->evalStack[thread->height-2];
+        *smoothedEval  = eval;
+        return;
+    }
+
+    const int previousEval  = thread->evalStack[thread->height-2];
+    const int previousTrend = thread->trendStack[thread->height-2];
+    *smoothedTrend = ((LAMBDA * (eval - previousEval)) + (1000 - LAMBDA) * previousTrend) / 1000;
+    *smoothedEval = ((EPSILON * eval) + (1000 - EPSILON) * (previousEval + previousTrend)) / 1000;
 }
 
 void initSearch() {
@@ -308,9 +322,13 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     inCheck = !!board->kingAttackers;
 
     // Save a history of the static evaluations
-    eval = thread->evalStack[thread->height]
-         = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
-    eval = smoothEval(thread, eval);
+    eval = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
+
+    int sEval, sTrend;
+    smoothEval(thread, eval, &sEval, &sTrend);
+
+    thread->trendStack[thread->height] = sTrend;
+    eval = thread->evalStack[thread->height] = sEval;
 
     // Futility Pruning Margin
     futilityMargin = FutilityMargin * depth;
@@ -674,9 +692,13 @@ int qsearch(Thread *thread, PVariation *pv, int alpha, int beta) {
     }
 
     // Save a history of the static evaluations
-    eval = thread->evalStack[thread->height]
-         = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
-    eval = smoothEval(thread, eval);
+    eval = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
+
+    int sEval, sTrend;
+    smoothEval(thread, eval, &sEval, &sTrend);
+
+    thread->trendStack[thread->height] = sTrend;
+    eval = thread->evalStack[thread->height] = sEval;
 
     // Step 5. Eval Pruning. If a static evaluation of the board will
     // exceed beta, then we can stop the search here. Also, if the static

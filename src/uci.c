@@ -51,6 +51,9 @@ extern volatile int IS_PONDERING; // Defined by search.c
 extern volatile int ANALYSISMODE; // Defined by search.c
 extern PKNetwork PKNN;            // Defined by network.c
 
+extern int EPSILON;
+extern int LAMBDA;
+
 pthread_mutex_t READYLOCK = PTHREAD_MUTEX_INITIALIZER;
 const char *StartPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -301,6 +304,16 @@ void uciSetOption(char *str, Thread **threads, int *multiPV, int *chess960) {
     if (strStartsWith(str, "setoption name MoveOverhead value ")) {
         MoveOverhead = atoi(str + strlen("setoption name MoveOverhead value "));
         printf("info string set MoveOverhead to %d\n", MoveOverhead);
+    }
+
+    if (strStartsWith(str, "setoption name EPSILON value ")){
+        EPSILON = atoi(str + strlen("setoption name EPSILON value "));
+        printf("info string set EPSILON to %dn", EPSILON);
+    }
+
+    if (strStartsWith(str, "setoption name LAMBDA value ")){
+        LAMBDA = atoi(str + strlen("setoption name LAMBDA value "));
+        printf("info string set LAMBDA to %dn", LAMBDA);
     }
 
     if (strStartsWith(str, "setoption name SyzygyPath value ")) {

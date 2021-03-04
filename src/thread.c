@@ -39,6 +39,7 @@ Thread* createThreadPool(int nthreads) {
 
         // Offset stacks so the root position may look backwards
         threads[i].evalStack  = &(threads[i]._evalStack[STACK_OFFSET]);
+        threads[i].trendStack = &(threads[i]._trendStack[STACK_OFFSET]);
         threads[i].moveStack  = &(threads[i]._moveStack[STACK_OFFSET]);
         threads[i].pieceStack = &(threads[i]._pieceStack[STACK_OFFSET]);
 
