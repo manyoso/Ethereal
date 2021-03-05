@@ -215,7 +215,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     int ttHit, ttValue = 0, ttEval = VALUE_NONE, ttDepth = 0, ttBound = 0;
     int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
     int inCheck, isQuiet, improving, extension, singular, skipQuiets = 0;
-    int eval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
+    int eval, oldEval, value = -MATE, best = -MATE, futilityMargin, seeMargin[2];
     uint16_t move, ttMove = NONE_MOVE, bestMove = NONE_MOVE;
     uint16_t quietsTried[MAX_MOVES], capturesTried[MAX_MOVES];
     MovePicker movePicker;
@@ -315,9 +315,8 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     inCheck = !!board->kingAttackers;
 
     // Save a history of the static evaluations
-    eval = thread->evalStack[thread->height]
-         = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
-    eval = thread->evalStack[thread->height] = smoothEval(thread, eval);
+    oldEval = ttEval != VALUE_NONE ? ttEval : evaluateBoard(thread, board);
+    eval = thread->evalStack[thread->height] = smoothEval(thread, oldEval);
 
     // Futility Pruning Margin
     futilityMargin = FutilityMargin * depth;
@@ -628,7 +627,7 @@ int search(Thread *thread, PVariation *pv, int alpha, int beta, int depth) {
     if (!RootNode || !thread->multiPV) {
         ttBound = best >= beta    ? BOUND_LOWER
                 : best > oldAlpha ? BOUND_EXACT : BOUND_UPPER;
-        storeTTEntry(board->hash, bestMove, valueToTT(best, thread->height), eval, depth, ttBound);
+        storeTTEntry(board->hash, bestMove, valueToTT(best, thread->height), oldEval, depth, ttBound);
     }
 
     return best;
